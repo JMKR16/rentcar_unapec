@@ -9,19 +9,19 @@
 <body class="bg-light">
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">UNAPEC RentCar</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link active" href="/">Clientes</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
-                <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
-                <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
-                <li class="nav-item"><a class="nav-link" href="/vehiculos">Vehículos</a></li>
-            </ul>
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">UNAPEC RentCar</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/vehiculos">Vehículos</a></li>
+                </ul>
+            </div>
         </div>
-    </div>
-</nav>
+    </nav>
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -37,34 +37,21 @@
     </div>
 
     <div class="container mt-4">
-        <div class="card shadow-sm p-4 bg-white mb-4">
-            <h2 class="mb-4">Gestión de Tipos de Vehículos</h2>
-            
-            <form action="/guardar_tipo_vehiculo" method="POST" class="row g-3 align-items-end bg-light p-3 rounded border">
-                <div class="col-md-6">
-                    <label class="form-label font-weight-bold">Descripción (Ej: Sedán, Jeepeta, Camión)</label>
-                    <input type="text" name="txt_descripcion" class="form-control" placeholder="Escribe el tipo de vehículo" required maxlength="100">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label font-weight-bold">Estado Inicial</label>
-                    <select name="sel_estado" class="form-select">
-                        <option value="Activo">Activo</option>
-                        <option value="Inactivo">Inactivo</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">+ Agregar Tipo</button>
-                </div>
-            </form>
-        </div>
-
         <div class="card shadow-sm p-4 bg-white">
-            <table class="table table-hover table-striped">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Gestión de Tipos de Vehículos</h2>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarTipo">
+                    + Agregar Tipo
+                </button>
+            </div>
+            
+            <table class="table table-hover table-striped align-middle">
                 <thead class="table-dark">
                     <tr>
                         <th>ID Tipo</th>
                         <th>Descripción</th>
                         <th>Estado</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -73,16 +60,55 @@
                         <td>{{ t.id_tipo_vehiculo }}</td>
                         <td><strong>{{ t.descripcion }}</strong></td>
                         <td>
-                            {% if t.estado == 'Activo' %}
-                                <span class="badge bg-success">Activo</span>
-                            {% else %}
+                            {% if t.estado == 'Inactivo' %}
                                 <span class="badge bg-danger">Inactivo</span>
+                            {% else %}
+                                <span class="badge bg-success">Activo</span>
                             {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                {% if t.estado == 'Inactivo' %}
+                                <a href="/cambiar_estado_tipo/{{ t.id_tipo_vehiculo }}/Activo" class="btn btn-success">Habilitar</a>
+                                {% else %}
+                                <a href="/cambiar_estado_tipo/{{ t.id_tipo_vehiculo }}/Inactivo" class="btn btn-warning">Inhabilitar</a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalAgregarTipo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Registrar Nuevo Tipo de Vehículo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/guardar_tipo_vehiculo" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">Descripción (Ej: Sedán, Jeepeta, Camioneta)</label>
+                            <input type="text" name="txt_descripcion" class="form-control" placeholder="Escribe el tipo" required maxlength="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">Estado Inicial</label>
+                            <select name="sel_estado" class="form-select">
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Tipo</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 

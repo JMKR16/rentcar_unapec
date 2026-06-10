@@ -45,24 +45,23 @@ def guardar_cliente():
 # ==========================================
 #  CRUD: TIPOS DE VEHÍCULOS
 # ==========================================
+
 @app.route('/tipos_vehiculos')
 def listar_tipos_vehiculos():
     try:
         cursor = mysql.connection.cursor()
-        # Se incluye la columna estado
         cursor.execute("SELECT id_tipo_vehiculo, descripcion, estado FROM tipos_vehiculos ORDER BY id_tipo_vehiculo ASC")
         tipos = cursor.fetchall()
         cursor.close()
         return render_template('tipos_vehiculos.html', lista_tipos=tipos)
     except Exception as e:
-        flash(f"Error al cargar tipos de vehículos: {str(e)}", "danger")
+        flash(f"Error al cargar tipos: {str(e)}", "danger")
         return render_template('tipos_vehiculos.html', lista_tipos=[])
 
 @app.route('/guardar_tipo_vehiculo', methods=['POST'])
 def guardar_tipo_vehiculo():
     descripcion = request.form.get('txt_descripcion', '').strip()
     estado = request.form.get('sel_estado', 'Activo')
-    
     if not descripcion:
         flash("La descripción es obligatoria.", "warning")
         return redirect(url_for('listar_tipos_vehiculos'))
@@ -71,11 +70,22 @@ def guardar_tipo_vehiculo():
         cursor.execute("INSERT INTO tipos_vehiculos (descripcion, estado) VALUES (%s, %s)", (descripcion, estado))
         mysql.connection.commit()
         cursor.close()
-        flash(f"Tipo de vehículo '{descripcion}' registrado exitosamente.", "success")
+        flash(f"Tipo '{descripcion}' registrado con éxito.", "success")
     except Exception as e:
-        flash(f"Error al guardar tipo de vehículo: {str(e)}", "danger")
+        flash(f"Error al guardar tipo: {str(e)}", "danger")
     return redirect(url_for('listar_tipos_vehiculos'))
 
+@app.route('/cambiar_estado_tipo/<int:id_tipo>/<string:nuevo_estado>')
+def cambiar_estado_tipo(id_tipo, nuevo_estado):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE tipos_vehiculos SET estado = %s WHERE id_tipo_vehiculo = %s", (nuevo_estado, id_tipo))
+        mysql.connection.commit()
+        cursor.close()
+        flash(f"Estado del tipo de vehículo actualizado a '{nuevo_estado}'.", "success")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+    return redirect(url_for('listar_tipos_vehiculos'))
 
 # ===================================
 #  CRUD MARCAS (Estado y soft delete)
@@ -129,14 +139,15 @@ def cambiar_estado_marca(id_marca, nuevo_estado):
 # ==================================
 # 3.  CRUD: MODELOS (Con Estado)
 # ==================================
+
 @app.route('/modelos')
 def listar_modelos():
     try:
         cursor = mysql.connection.cursor()
+        # RESTRICCIÓN DE NEGOCIO: Solo permitimos elegir marcas ACTIVAS para crear nuevos modelos
         cursor.execute("SELECT id_marca, descripcion FROM marcas WHERE estado = 'Activo' ORDER BY id_marca ASC")
         marcas = cursor.fetchall()
         
-        # Se agrega mo.estado a la consulta con el INNER JOIN
         query_modelos = """
             SELECT mo.id_modelo, mo.descripcion, m.descripcion AS marca_nombre, mo.estado 
             FROM modelos mo
@@ -156,7 +167,6 @@ def guardar_modelo():
     id_marca = request.form.get('sel_marca')
     nombre_modelo = request.form.get('txt_modelo', '').strip()
     estado = request.form.get('sel_estado', 'Activo')
-    
     if not id_marca or not nombre_modelo:
         flash("Todos los campos son obligatorios.", "warning")
         return redirect(url_for('listar_modelos'))
@@ -165,9 +175,21 @@ def guardar_modelo():
         cursor.execute("INSERT INTO modelos (id_marca, descripcion, estado) VALUES (%s, %s, %s)", (id_marca, nombre_modelo, estado))
         mysql.connection.commit()
         cursor.close()
-        flash(f"Modelo '{nombre_modelo}' guardado exitosamente.", "success")
+        flash(f"Modelo '{nombre_modelo}' registrado con éxito.", "success")
     except Exception as e:
         flash(f"Error al guardar modelo: {str(e)}", "danger")
+    return redirect(url_for('listar_modelos'))
+
+@app.route('/cambiar_estado_modelo/<int:id_modelo>/<string:nuevo_estado>')
+def cambiar_estado_modelo(id_modelo, nuevo_estado):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE modelos SET estado = %s WHERE id_modelo = %s", (nuevo_estado, id_modelo))
+        mysql.connection.commit()
+        cursor.close()
+        flash(f"Estado del modelo actualizado a '{nuevo_estado}'.", "success")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
     return redirect(url_for('listar_modelos'))
 
 
