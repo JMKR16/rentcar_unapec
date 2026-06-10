@@ -77,14 +77,15 @@ def guardar_tipo_vehiculo():
     return redirect(url_for('listar_tipos_vehiculos'))
 
 
-# ============================
-#  CRUD MARCAS (Con Estado)
-# ============================
+# ===================================
+#  CRUD MARCAS (Estado y soft delete)
+# ===================================
+
 @app.route('/marcas')
 def listar_marcas():
     try:
         cursor = mysql.connection.cursor()
-        # Se agrega la columna 'estado' a la consulta
+        # Ahora seleccionamos explícitamente el estado de la marca
         cursor.execute("SELECT id_marca, descripcion, estado FROM marcas ORDER BY id_marca ASC")
         marcas = cursor.fetchall()
         cursor.close()
@@ -96,7 +97,7 @@ def listar_marcas():
 @app.route('/guardar_marca', methods=['POST'])
 def guardar_marca():
     nombre_marca = request.form.get('txt_marca', '').strip()
-    estado = request.form.get('sel_estado', 'Activo') # Captura el estado de la web
+    estado = request.form.get('sel_estado', 'Activo')
     
     if not nombre_marca:
         flash("El nombre de la marca es obligatorio.", "warning")
@@ -109,6 +110,19 @@ def guardar_marca():
         flash(f"Marca '{nombre_marca}' registrada exitosamente.", "success")
     except Exception as e:
         flash(f"Error al guardar marca: {str(e)}", "danger")
+    return redirect(url_for('listar_marcas'))
+
+@app.route('/cambiar_estado_marca/<int:id_marca>/<string:nuevo_estado>')
+def cambiar_estado_marca(id_marca, nuevo_estado):
+    try:
+        cursor = mysql.connection.cursor()
+        # Ejecutamos el Soft Delete o la reactivación lógica sin romper llaves foráneas
+        cursor.execute("UPDATE marcas SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
+        mysql.connection.commit()
+        cursor.close()
+        flash(f"Estado de la marca actualizado a '{nuevo_estado}' con éxito.", "success")
+    except Exception as e:
+        flash(f"Error al cambiar el estado de la marca: {str(e)}", "danger")
     return redirect(url_for('listar_marcas'))
 
 
