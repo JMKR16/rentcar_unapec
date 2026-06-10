@@ -94,7 +94,7 @@ def cambiar_estado_tipo(id_tipo, nuevo_estado):
     return redirect(url_for('listar_tipos_vehiculos'))
 
 # ===================================
-#  CRUD MARCAS (Estado y soft delete)
+#  CRUD MARCAS 
 # ===================================
 
 @app.route('/marcas')
@@ -154,7 +154,7 @@ def cambiar_estado_marca(id_marca, nuevo_estado):
 
 
 # ==================================
-# 3.  CRUD: MODELOS (Con Estado y soft delete)
+# 3.  CRUD: MODELOS 
 # ==================================
 
 @app.route('/modelos')
@@ -281,42 +281,60 @@ def cambiar_estado_combustible(id_combustible, nuevo_estado):
 @app.route('/vehiculos')
 def listar_vehiculos():
     try:
+        filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
-        query_vehiculos = """
+        
+        #  Se toman los catalogos protegidos (Solo los que estén ACTIVOS)
+        cursor.execute("SELECT id_marca, descripcion FROM marcas WHERE estado = 'Activo' ORDER BY descripcion ASC")
+        cat_marcas = cursor.fetchall()
+        
+        cursor.execute("SELECT id_modelo, descripcion FROM modelos WHERE estado = 'Activo' ORDER BY descripcion ASC")
+        cat_modelos = cursor.fetchall()
+        
+        cursor.execute("SELECT id_tipo_vehiculo, descripcion FROM tipos_vehiculos WHERE estado = 'Activo' ORDER BY descripcion ASC")
+        cat_tipos = cursor.fetchall()
+        
+        cursor.execute("SELECT id_combustible, descripcion FROM tipos_combustible WHERE estado = 'Activo' ORDER BY descripcion ASC")
+        cat_combustibles = cursor.fetchall()
+        
+        #  Se construye el query  de la tabla relacional CON INNER JOINS
+        query_base = """
             SELECT 
                 v.id_vehiculo, v.descripcion, v.no_chasis, v.no_motor, v.no_placa,
                 m.descripcion AS marca_nombre,
                 mo.descripcion AS modelo_nombre,
                 t.descripcion AS tipo_nombre,
-                c.descripcion AS combustible_nombre
+                c.descripcion AS combustible_nombre,
+                v.estado
             FROM vehiculos v
             INNER JOIN marcas m ON v.id_marca = m.id_marca
             INNER JOIN modelos mo ON v.id_modelo = mo.id_modelo
             INNER JOIN tipos_vehiculos t ON v.id_tipo_vehiculo = t.id_tipo_vehiculo
             INNER JOIN tipos_combustible c ON v.id_combustible = c.id_combustible
         """
+        
+        #  Filtro de Soft Delete sobre la tabla de vehículos
+        if filtro == 'todos':
+            query_vehiculos = query_base + " ORDER BY v.id_vehiculo ASC"
+        else:
+            query_vehiculos = query_base + " WHERE v.estado = 'Activo' ORDER BY v.id_vehiculo ASC"
+            
         cursor.execute(query_vehiculos)
         lista_vehiculos = cursor.fetchall()
-        
-        cursor.execute("SELECT id_marca, descripcion FROM marcas WHERE estado = 'Activo'")
-        cat_marcas = cursor.fetchall()
-        cursor.execute("SELECT id_modelo, descripcion FROM modelos WHERE estado = 'Activo'")
-        cat_modelos = cursor.fetchall()
-        cursor.execute("SELECT id_tipo_vehiculo, descripcion FROM tipos_vehiculos WHERE estado = 'Activo'")
-        cat_tipos = cursor.fetchall()
-        cursor.execute("SELECT id_combustible, descripcion FROM tipos_combustible")
-        cat_combustibles = cursor.fetchall()
-        
         cursor.close()
+        
         return render_template('vehiculos.html', 
                                vehiculos_pantalla=lista_vehiculos,
                                marcas_form=cat_marcas,
                                modelos_form=cat_modelos,
                                tipos_form=cat_tipos,
-                               combustibles_form=cat_combustibles)
+                               combustibles_form=cat_combustibles,
+                               filtro_actual=filtro)
+                               
     except Exception as e:
-        flash(f"Error al cargar el módulo de vehículos: {str(e)}", "danger")
-        return render_template('vehiculos.html', vehiculos_pantalla=[], marcas_form=[], modelos_form=[], tipos_form=[], combustibles_form=[])
+        flash(f"Error crítico al cargar el módulo relacional de vehículos: {str(e)}", "danger")
+        return render_template('vehiculos.html', vehiculos_pantalla=[], marcas_form=[], modelos_form=[], tipos_form=[], combustibles_form=[], filtro_actual='activos')
+
 
 @app.route('/guardar_vehiculo', methods=['POST'])
 def guardar_vehiculo():
@@ -324,27 +342,43 @@ def guardar_vehiculo():
     chasis = request.form.get('txt_chasis', '').strip()
     motor = request.form.get('txt_motor', '').strip()
     placa = request.form.get('txt_placa', '').strip()
+    
     id_marca = request.form.get('sel_marca')
     id_modelo = request.form.get('sel_modelo')
     id_tipo = request.form.get('sel_tipo')
     id_combustible = request.form.get('sel_combustible')
+    estado = request.form.get('sel_estado', 'Activo')
     
-    if not descripcion or not chasis or not motor or not placa:
-        flash("Todos los campos de texto son obligatorios", "warning")
+    if not descripcion or not chasis or not motor or not placa or not id_marca or not id_modelo or not id_tipo or not id_combustible:
+        flash("Todos los campos relacionales y de texto son obligatorios.", "warning")
         return redirect(url_for('listar_vehiculos'))
+        
     try:
         cursor = mysql.connection.cursor()
         cursor.execute("""
-            INSERT INTO vehiculos (descripcion, no_chasis, no_motor, no_placa, id_tipo_vehiculo, id_marca, id_modelo, id_combustible)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (descripcion, chasis, motor, placa, id_tipo, id_marca, id_modelo, id_combustible))
+            INSERT INTO vehiculos (descripcion, no_chasis, no_motor, no_placa, id_tipo_vehiculo, id_marca, id_modelo, id_combustible, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (descripcion, chasis, motor, placa, id_tipo, id_marca, id_modelo, id_combustible, estado))
         mysql.connection.commit()
         cursor.close()
-        flash("Vehículo relacional registrado exitosamente", "success")
+        flash(f"Vehículo '{descripcion}' [Placa: {placa}] registrado exitosamente en el sistema.", "success")
     except Exception as e:
-        flash(f"Error crítico al guardar en la base de datos: {str(e)}", "danger")
+        flash(f"Error al insertar el vehículo en la base de datos: {str(e)}", "danger")
+        
     return redirect(url_for('listar_vehiculos'))
 
+
+@app.route('/cambiar_estado_vehiculo/<int:id_vehiculo>/<string:nuevo_estado>')
+def cambiar_estado_vehiculo(id_vehiculo, nuevo_estado):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE vehiculos SET estado = %s WHERE id_vehiculo = %s", (nuevo_estado, id_vehiculo))
+        mysql.connection.commit()
+        cursor.close()
+        flash(f"Estado del vehículo ID {id_vehiculo} actualizado a '{nuevo_estado}' con éxito.", "success")
+    except Exception as e:
+        flash(f"Error al cambiar el estado del vehículo: {str(e)}", "danger")
+    return redirect(url_for('listar_vehiculos'))
 
 # ======================
 #   CIERRE  DEL ARCHIVO
