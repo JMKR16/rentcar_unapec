@@ -79,14 +79,49 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                {% if t.estado == 'Inactivo' %}
-                                <a href="/cambiar_estado_tipo/{{ t.id_tipo_vehiculo }}/Activo" class="btn btn-success">Habilitar</a>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarTipo{{ t.id_tipo_vehiculo }}">
+                                    Editar
+                                </button>
+
+                                {% if t.estado == 'Activo' %}
+                                    <a href="/cambiar_estado_tipo/{{ t.id_tipo_vehiculo }}/Inactivo" 
+                                       class="btn btn-warning" 
+                                       onclick="return confirm('¿Estás seguro de inhabilitar el tipo «{{ t.descripcion }}»?');">
+                                        Inhabilitar
+                                    </a>
                                 {% else %}
-                                <a href="/cambiar_estado_tipo/{{ t.id_tipo_vehiculo }}/Inactivo" class="btn btn-warning">Inhabilitar</a>
+                                    <a href="/cambiar_estado_tipo/{{ t.id_tipo_vehiculo }}/Activo" 
+                                       class="btn btn-success" 
+                                       onclick="return confirm('¿Deseas habilitar el tipo «{{ t.descripcion }}»?');">
+                                        Habilitar
+                                    </a>
                                 {% endif %}
                             </div>
                         </td>
                     </tr>
+
+                    <div class="modal fade" id="modalEditarTipo{{ t.id_tipo_vehiculo }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content text-start">
+                                <div class="modal-header bg-dark text-white">
+                                    <h5 class="modal-title">Modificar Tipo de Vehículo</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="/editar_tipo_vehiculo/{{ t.id_tipo_vehiculo }}" method="POST">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label font-weight-bold">Nueva Descripción del Tipo</label>
+                                            <input type="text" name="txt_descripcion_edit" class="form-control" value="{{ t.descripcion }}" required maxlength="100">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Actualizar Nombre</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
                 </tbody>
             </table>

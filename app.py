@@ -93,6 +93,24 @@ def cambiar_estado_tipo(id_tipo, nuevo_estado):
         flash(f"Error: {str(e)}", "danger")
     return redirect(url_for('listar_tipos_vehiculos'))
 
+
+@app.route('/editar_tipo_vehiculo/<int:id_tipo>', methods=['POST'])
+def editar_tipo_vehiculo(id_tipo):
+    nuevo_nombre = request.form.get('txt_descripcion_edit', '').strip()
+    if not nuevo_nombre:
+        flash("La descripción del tipo de vehículo no puede estar vacía.", "warning")
+        return redirect(url_for('listar_tipos_vehiculos'))
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE tipos_vehiculos SET descripcion = %s WHERE id_tipo_vehiculo = %s", (nuevo_nombre, id_tipo))
+        mysql.connection.commit()
+        cursor.close()
+        flash("Tipo de vehículo renombrado exitosamente.", "success")
+    except Exception as e:
+        flash(f"Error al actualizar el tipo de vehículo: {str(e)}", "danger")
+    return redirect(url_for('listar_tipos_vehiculos'))
+
+
 # ===================================
 #  CRUD MARCAS 
 # ===================================
@@ -152,6 +170,30 @@ def cambiar_estado_marca(id_marca, nuevo_estado):
         flash(f"Error al cambiar el estado de la marca: {str(e)}", "danger")
     return redirect(url_for('listar_marcas'))
 
+@app.route('/editar_marca/<int:id_marca>', methods=['POST'])
+def editar_marca(id_marca):
+    nuevo_nombre = request.form.get('txt_descripcion_edit', '').strip()
+    
+    if not nuevo_nombre:
+        flash("La descripción de la marca no puede estar vacía.", "warning")
+        return redirect(url_for('listar_marcas'))
+        
+    try:
+        cursor = mysql.connection.cursor()
+        # Modificamos únicamente la columna descripción
+        cursor.execute("""
+            UPDATE marcas 
+            SET descripcion = %s 
+            WHERE id_marca = %s
+        """, (nuevo_nombre, id_marca))
+        
+        mysql.connection.commit()
+        cursor.close()
+        flash("Marca renombrada exitosamente.", "success")
+    except Exception as e:
+        flash(f"Error al actualizar el nombre de la marca: {str(e)}", "danger")
+        
+    return redirect(url_for('listar_marcas'))
 
 # ==================================
 # 3.  CRUD: MODELOS 
@@ -222,6 +264,22 @@ def cambiar_estado_modelo(id_modelo, nuevo_estado):
         flash(f"Error: {str(e)}", "danger")
     return redirect(url_for('listar_modelos'))
 
+@app.route('/editar_modelo/<int:id_modelo>', methods=['POST'])
+def editar_modelo(id_modelo):
+    nuevo_nombre = request.form.get('txt_descripcion_edit', '').strip()
+    if not nuevo_nombre:
+        flash("La descripción del modelo no puede estar vacía.", "warning")
+        return redirect(url_for('listar_modelos'))
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE modelos SET descripcion = %s WHERE id_modelo = %s", (nuevo_nombre, id_modelo))
+        mysql.connection.commit()
+        cursor.close()
+        flash("Modelo renombrado exitosamente.", "success")
+    except Exception as e:
+        flash(f"Error al actualizar el modelo: {str(e)}", "danger")
+    return redirect(url_for('listar_modelos'))
+
 
 # ==========================================
 #  CRUD: TIPOS DE COMBUSTIBLE 
@@ -273,6 +331,22 @@ def cambiar_estado_combustible(id_combustible, nuevo_estado):
         flash(f"Estado del combustible actualizado a '{nuevo_estado}' con éxito.", "success")
     except Exception as e:
         flash(f"Error al cambiar el estado del combustible: {str(e)}", "danger")
+    return redirect(url_for('listar_combustibles'))
+
+@app.route('/editar_combustible/<int:id_combustible>', methods=['POST'])
+def editar_combustible(id_combustible):
+    nuevo_nombre = request.form.get('txt_descripcion_edit', '').strip()
+    if not nuevo_nombre:
+        flash("La descripción del combustible no puede estar vacía.", "warning")
+        return redirect(url_for('listar_combustibles'))
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE tipos_combustible SET descripcion = %s WHERE id_combustible = %s", (nuevo_nombre, id_combustible))
+        mysql.connection.commit()
+        cursor.close()
+        flash("Tipo de combustible renombrado exitosamente.", "success")
+    except Exception as e:
+        flash(f"Error al actualizar el tipo de combustible: {str(e)}", "danger")
     return redirect(url_for('listar_combustibles'))
 
 # ==========================================

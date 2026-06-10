@@ -81,14 +81,50 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarModelo{{ mod.id_modelo }}">
+                                    Editar
+                                </button>
+
                                 {% if mod.estado == 'Activo' %}
-                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Inactivo" class="btn btn-warning">Inhabilitar</a>
+                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Inactivo" 
+                                       class="btn btn-warning" 
+                                       onclick="return confirm('¿Estás seguro de inhabilitar el modelo «{{ mod.descripcion }}»?');">
+                                        Inhabilitar
+                                    </a>
                                 {% else %}
-                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Activo" class="btn btn-success">Habilitar</a>
+                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Activo" 
+                                       class="btn btn-success" 
+                                       onclick="return confirm('¿Deseas habilitar el modelo «{{ mod.descripcion }}»?');">
+                                        Habilitar
+                                    </a>
                                 {% endif %}
                             </div>
                         </td>
                     </tr>
+
+                    <div class="modal fade" id="modalEditarModelo{{ mod.id_modelo }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content text-start">
+                                <div class="modal-header bg-dark text-white">
+                                    <h5 class="modal-title">Modificar Nombre del Modelo</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="/editar_modelo/{{ mod.id_modelo }}" method="POST">
+                                    <div class="modal-body">
+                                        <div class="mb-2 text-muted small">Marca vinculada: <strong>{{ mod.marca_nombre }}</strong></div>
+                                        <div class="mb-3">
+                                            <label class="form-label font-weight-bold">Nuevo Nombre del Modelo</label>
+                                            <input type="text" name="txt_descripcion_edit" class="form-control" value="{{ mod.descripcion }}" required maxlength="100">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Actualizar Nombre</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
                 </tbody>
             </table>
@@ -102,6 +138,7 @@
                     <h5 class="modal-title">Registrar Nuevo Modelo</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
                 <form action="/guardar_modelo" method="POST">
                     <div class="modal-body">
                         <div class="mb-3">

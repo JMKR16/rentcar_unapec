@@ -79,14 +79,49 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarCombustible{{ c.id_combustible }}">
+                                    Editar
+                                </button>
+
                                 {% if c.estado == 'Activo' %}
-                                    <a href="/cambiar_estado_combustible/{{ c.id_combustible }}/Inactivo" class="btn btn-warning">Inhabilitar</a>
+                                    <a href="/cambiar_estado_combustible/{{ c.id_combustible }}/Inactivo" 
+                                       class="btn btn-warning" 
+                                       onclick="return confirm('¿Estás seguro de inhabilitar el combustible «{{ c.descripcion }}»?');">
+                                        Inhabilitar
+                                    </a>
                                 {% else %}
-                                    <a href="/cambiar_estado_combustible/{{ c.id_combustible }}/Activo" class="btn btn-success">Habilitar</a>
+                                    <a href="/cambiar_estado_combustible/{{ c.id_combustible }}/Activo" 
+                                       class="btn btn-success" 
+                                       onclick="return confirm('¿Deseas habilitar el combustible «{{ c.descripcion }}»?');">
+                                        Habilitar
+                                    </a>
                                 {% endif %}
                             </div>
                         </td>
                     </tr>
+
+                    <div class="modal fade" id="modalEditarCombustible{{ c.id_combustible }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content text-start">
+                                <div class="modal-header bg-dark text-white">
+                                    <h5 class="modal-title">Modificar Tipo de Combustible</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="/editar_combustible/{{ c.id_combustible }}" method="POST">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label font-weight-bold">Nueva Descripción</label>
+                                            <input type="text" name="txt_descripcion_edit" class="form-control" value="{{ c.descripcion }}" required maxlength="100">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Actualizar Nombre</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
                 </tbody>
             </table>
