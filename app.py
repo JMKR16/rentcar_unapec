@@ -288,7 +288,7 @@ def listar_vehiculos():
         cursor.execute("SELECT id_marca, descripcion FROM marcas WHERE estado = 'Activo' ORDER BY descripcion ASC")
         cat_marcas = cursor.fetchall()
         
-        cursor.execute("SELECT id_modelo, descripcion FROM modelos WHERE estado = 'Activo' ORDER BY descripcion ASC")
+        cursor.execute("SELECT id_modelo, descripcion, id_marca FROM modelos WHERE estado = 'Activo'")
         cat_modelos = cursor.fetchall()
         
         cursor.execute("SELECT id_tipo_vehiculo, descripcion FROM tipos_vehiculos WHERE estado = 'Activo' ORDER BY descripcion ASC")
@@ -355,18 +355,28 @@ def guardar_vehiculo():
         
     try:
         cursor = mysql.connection.cursor()
+        
+        # VALIDACIÓN DE PLACA ÚNICA
+        cursor.execute("SELECT id_vehiculo FROM vehiculos WHERE no_placa = %s", (placa,))
+        placa_existente = cursor.fetchone()
+        
+        if placa_existente:
+            cursor.close()
+            flash(f"Error: La placa '{placa}' ya está registrada en el sistema con otro vehículo.", "danger")
+            return redirect(url_for('listar_vehiculos'))
+            
+        # Si no existe, procedemos con la inserción normal
         cursor.execute("""
             INSERT INTO vehiculos (descripcion, no_chasis, no_motor, no_placa, id_tipo_vehiculo, id_marca, id_modelo, id_combustible, estado)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (descripcion, chasis, motor, placa, id_tipo, id_marca, id_modelo, id_combustible, estado))
         mysql.connection.commit()
         cursor.close()
-        flash(f"Vehículo '{descripcion}' [Placa: {placa}] registrado exitosamente en el sistema.", "success")
+        flash(f"Vehículo '{descripcion}' [Placa: {placa}] registrado exitosamente.", "success")
     except Exception as e:
-        flash(f"Error al insertar el vehículo en la base de datos: {str(e)}", "danger")
+        flash(f"Error al insertar el vehículo: {str(e)}", "danger")
         
     return redirect(url_for('listar_vehiculos'))
-
 
 @app.route('/cambiar_estado_vehiculo/<int:id_vehiculo>/<string:nuevo_estado>')
 def cambiar_estado_vehiculo(id_vehiculo, nuevo_estado):
