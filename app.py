@@ -227,6 +227,53 @@ def cambiar_estado_modelo(id_modelo, nuevo_estado):
 #  CRUD: TIPOS DE COMBUSTIBLE 
 # ==========================================
 
+@app.route('/tipos_combustible')
+def listar_combustibles():
+    try:
+        filtro = request.args.get('ver', 'activos')
+        cursor = mysql.connection.cursor()
+        
+        if filtro == 'todos':
+            cursor.execute("SELECT id_combustible, descripcion, estado FROM tipos_combustible ORDER BY id_combustible ASC")
+        else:
+            cursor.execute("SELECT id_combustible, descripcion, estado FROM tipos_combustible WHERE estado = 'Activo' ORDER BY id_combustible ASC")
+            
+        combustibles = cursor.fetchall()
+        cursor.close()
+        return render_template('tipos_combustible.html', lista_combustibles=combustibles, filtro_actual=filtro)
+    except Exception as e:
+        flash(f"Error al cargar tipos de combustible: {str(e)}", "danger")
+        return render_template('tipos_combustible.html', lista_combustibles=[], filtro_actual='activos')
+
+@app.route('/guardar_combustible', methods=['POST'])
+def guardar_combustible():
+    descripcion = request.form.get('txt_descripcion', '').strip()
+    estado = request.form.get('sel_estado', 'Activo')
+    
+    if not descripcion:
+        flash("La descripción del combustible es obligatoria.", "warning")
+        return redirect(url_for('listar_combustibles'))
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("INSERT INTO tipos_combustible (descripcion, estado) VALUES (%s, %s)", (descripcion, estado))
+        mysql.connection.commit()
+        cursor.close()
+        flash(f"Combustible '{descripcion}' registrado exitosamente.", "success")
+    except Exception as e:
+        flash(f"Error al guardar tipo de combustible: {str(e)}", "danger")
+    return redirect(url_for('listar_combustibles'))
+
+@app.route('/cambiar_estado_combustible/<int:id_combustible>/<string:nuevo_estado>')
+def cambiar_estado_combustible(id_combustible, nuevo_estado):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE tipos_combustible SET estado = %s WHERE id_combustible = %s", (nuevo_estado, id_combustible))
+        mysql.connection.commit()
+        cursor.close()
+        flash(f"Estado del combustible actualizado a '{nuevo_estado}' con éxito.", "success")
+    except Exception as e:
+        flash(f"Error al cambiar el estado del combustible: {str(e)}", "danger")
+    return redirect(url_for('listar_combustibles'))
 
 # ==========================================
 #  CRUD VEHÍCULOS 
