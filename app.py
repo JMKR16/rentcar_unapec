@@ -49,14 +49,20 @@ def guardar_cliente():
 @app.route('/tipos_vehiculos')
 def listar_tipos_vehiculos():
     try:
+        filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT id_tipo_vehiculo, descripcion, estado FROM tipos_vehiculos ORDER BY id_tipo_vehiculo ASC")
+        
+        if filtro == 'todos':
+            cursor.execute("SELECT id_tipo_vehiculo, descripcion, estado FROM tipos_vehiculos ORDER BY id_tipo_vehiculo ASC")
+        else:
+            cursor.execute("SELECT id_tipo_vehiculo, descripcion, estado FROM tipos_vehiculos WHERE estado = 'Activo' ORDER BY id_tipo_vehiculo ASC")
+            
         tipos = cursor.fetchall()
         cursor.close()
-        return render_template('tipos_vehiculos.html', lista_tipos=tipos)
+        return render_template('tipos_vehiculos.html', lista_tipos=tipos, filtro_actual=filtro)
     except Exception as e:
         flash(f"Error al cargar tipos: {str(e)}", "danger")
-        return render_template('tipos_vehiculos.html', lista_tipos=[])
+        return render_template('tipos_vehiculos.html', lista_tipos=[], filtro_actual='activos')
 
 @app.route('/guardar_tipo_vehiculo', methods=['POST'])
 def guardar_tipo_vehiculo():
@@ -94,15 +100,25 @@ def cambiar_estado_tipo(id_tipo, nuevo_estado):
 @app.route('/marcas')
 def listar_marcas():
     try:
+        # Se captura si el usuario quiere ver 'todos' o solo los 'activos' (por defecto solo activos)
+        filtro = request.args.get('ver', 'activos')
+        
         cursor = mysql.connection.cursor()
-        # Ahora seleccionamos explícitamente el estado de la marca
-        cursor.execute("SELECT id_marca, descripcion, estado FROM marcas ORDER BY id_marca ASC")
+        
+        if filtro == 'todos':
+            # Trae absolutamente todo (Activos e Inactivos)
+            cursor.execute("SELECT id_marca, descripcion, estado FROM marcas ORDER BY id_marca ASC")
+        else:
+            
+            cursor.execute("SELECT id_marca, descripcion, estado FROM marcas WHERE estado = 'Activo' ORDER BY id_marca ASC")
+            
         marcas = cursor.fetchall()
         cursor.close()
-        return render_template('marcas.html', lista_marcas=marcas)
+        
+        return render_template('marcas.html', lista_marcas=marcas, filtro_actual=filtro)
     except Exception as e:
         flash(f"Error al cargar marcas: {str(e)}", "danger")
-        return render_template('marcas.html', lista_marcas=[])
+        return render_template('marcas.html', lista_marcas=[], filtro_actual='activos')
 
 @app.route('/guardar_marca', methods=['POST'])
 def guardar_marca():
@@ -126,7 +142,8 @@ def guardar_marca():
 def cambiar_estado_marca(id_marca, nuevo_estado):
     try:
         cursor = mysql.connection.cursor()
-        # Ejecutamos el Soft Delete o la reactivación lógica sin romper llaves foráneas
+
+        # Se Ejecuta el Soft Delete o la reactivación lógica sin romper llaves foráneas
         cursor.execute("UPDATE marcas SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
         mysql.connection.commit()
         cursor.close()
@@ -137,30 +154,43 @@ def cambiar_estado_marca(id_marca, nuevo_estado):
 
 
 # ==================================
-# 3.  CRUD: MODELOS (Con Estado)
+# 3.  CRUD: MODELOS (Con Estado y soft delete)
 # ==================================
 
 @app.route('/modelos')
 def listar_modelos():
     try:
+        filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
-        # RESTRICCIÓN DE NEGOCIO: Solo permitimos elegir marcas ACTIVAS para crear nuevos modelos
+        
+        # El modal para CREAR modelos siempre debe jalar solo marcas ACTIVAS por seguridad
         cursor.execute("SELECT id_marca, descripcion FROM marcas WHERE estado = 'Activo' ORDER BY id_marca ASC")
         marcas = cursor.fetchall()
         
-        query_modelos = """
-            SELECT mo.id_modelo, mo.descripcion, m.descripcion AS marca_nombre, mo.estado 
-            FROM modelos mo
-            INNER JOIN marcas m ON mo.id_marca = m.id_marca
-            ORDER BY mo.id_modelo ASC
-        """
+        # Filtra la tabla de modelos según el botón seleccionado
+        if filtro == 'todos':
+            query_modelos = """
+                SELECT mo.id_modelo, mo.descripcion, m.descripcion AS marca_nombre, mo.estado 
+                FROM modelos mo
+                INNER JOIN marcas m ON mo.id_marca = m.id_marca
+                ORDER BY mo.id_modelo ASC
+            """
+        else:
+            query_modelos = """
+                SELECT mo.id_modelo, mo.descripcion, m.descripcion AS marca_nombre, mo.estado 
+                FROM modelos mo
+                INNER JOIN marcas m ON mo.id_marca = m.id_marca
+                WHERE mo.estado = 'Activo'
+                ORDER BY mo.id_modelo ASC
+            """
+            
         cursor.execute(query_modelos)
         modelos = cursor.fetchall()
         cursor.close()
-        return render_template('modelos.html', lista_marcas=marcas, lista_modelos=modelos)
+        return render_template('modelos.html', lista_marcas=marcas, lista_modelos=modelos, filtro_actual=filtro)
     except Exception as e:
         flash(f"Error al cargar modelos: {str(e)}", "danger")
-        return render_template('modelos.html', lista_marcas=[], lista_modelos=[])
+        return render_template('modelos.html', lista_marcas=[], lista_modelos=[], filtro_actual='activos')
 
 @app.route('/guardar_modelo', methods=['POST'])
 def guardar_modelo():

@@ -45,6 +45,16 @@
                 </button>
             </div>
             
+            <div class="d-flex justify-content-end mb-3 gap-2">
+                <span class="text-muted my-auto me-2 small">Mostrar:</span>
+                <a href="/modelos?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                    Solo Activos
+                </a>
+                <a href="/modelos?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                    Ver Todos (Incluir Inactivos)
+                </a>
+            </div>
+
             <table class="table table-hover table-striped align-middle">
                 <thead class="table-dark">
                     <tr>
@@ -70,10 +80,10 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                {% if mod.estado == 'Inactivo' %}
-                                <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Activo" class="btn btn-success">Habilitar</a>
+                                {% if mod.estado == 'Activo' %}
+                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Inactivo" class="btn btn-warning">Inhabilitar</a>
                                 {% else %}
-                                <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Inactivo" class="btn btn-warning">Inhabilitar</a>
+                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Activo" class="btn btn-success">Habilitar</a>
                                 {% endif %}
                             </div>
                         </td>
