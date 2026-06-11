@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>RentCar - Panel de Rentas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="/dashboard">RentCar</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/tipos_combustible">Tipos de Combustible</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/vehiculos">Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/clientes">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/empleados">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/inspecciones">Inspecciones</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/rentas">Rentas</a></li>
+                </ul>
+                <div class="d-flex ms-auto">
+                    <a href="/logout" class="btn btn-sm btn-outline-danger">Cerrar Sesión</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="card border-0 shadow-sm p-4 mb-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="fw-bold mb-0">Control de Rentas y Devoluciones</h3>
+                    <p class="text-muted small mb-0">Estados: Activo / Devuelto</p>
+                </div>
+                <button class="btn btn-primary fw-bold px-4" data-bs-toggle="modal" data-bs-target="#modalNuevaRenta">
+                    + Nueva Renta
+                </button>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 bg-white">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No. Renta</th>
+                            <th>Vehículo</th>
+                            <th>Cliente</th>
+                            <th>Fecha Renta</th>
+                            <th>Fecha Devolución</th>
+                            <th>Precio / Día</th>
+                            <th>Días</th>
+                            <th>Monto Total</th>
+                            <th>Estado</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if lista_rentas %}
+                            {% for renta in lista_rentas %}
+                            <tr>
+                                <td class="fw-bold">#{{ renta['no_renta'] }}</td>
+                                <td>{{ renta['vehiculo'] }}</td>
+                                <td>{{ renta['cliente'] }}</td>
+                                <td>{{ renta['fecha_renta'] }}</td>
+                                <td>
+                                    {% if renta['fecha_devolucion'] %}
+                                        {{ renta['fecha_devolucion'] }}
+                                    {% else %}
+                                        <span class="text-muted small fst-italic">En Uso</span>
+                                    {% endif %}
+                                </td>
+                                <td>RD$ {{ renta['monto_x_dia'] }}</td>
+                                <td>{{ renta['cantidad_dias'] if renta['cantidad_dias'] else '0' }}</td>
+                                <td class="fw-bold text-success">RD$ {{ renta['monto_total'] if renta['monto_total'] else '0.00' }}</td>
+                                <td>
+                                    <span class="badge rounded-pill {% if renta['estado'] == 'Activo' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                        {{ renta['estado'] }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    {% if renta['estado'] == 'Activo' %}
+                                        <div class="d-flex justify-content-center gap-1">
+                                            <button class="btn btn-sm btn-outline-dark btn-editar-renta" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modalEditarRenta"
+                                                    data-id="{{ renta['no_renta'] }}"
+                                                    data-vehiculo="{{ renta['id_vehiculo'] }}"
+                                                    data-cliente="{{ renta['id_cliente'] }}"
+                                                    data-empleado="{{ renta['id_empleado'] }}"
+                                                    data-renta="{{ renta['fecha_renta'] }}"
+                                                    data-devolucion="{{ renta['fecha_devolucion'] }}"
+                                                    data-monto="{{ renta['monto_x_dia'] }}"
+                                                    data-comentario="{{ renta['comentario'] }}">
+                                                Editar
+                                            </button>
+                                            
+                                            <button class="btn btn-sm btn-success fw-bold btn-cambiar-estado" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modalDevolucionRapida"
+                                                    data-id="{{ renta['no_renta'] }}">
+                                                Devolver
+                                            </button>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted small text-uppercase fw-bold text-secondary">Recibido</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center text-muted py-4">No se registran transacciones operativas.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalNuevaRenta" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"> Registrar Salida de Vehículo (Nueva Renta)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/guardar_renta" method="POST">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Vehículo a Rentar</label>
+                                    <select name="sel_vehiculo" class="form-select" required>
+                                        <option value="" disabled selected>Seleccione el vehículo...</option>
+                                        {% for v in lista_vehiculos %}
+                                        <option value="{{ v['id_vehiculo'] }}">{{ v['descripcion'] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Cliente</label>
+                                    <select name="sel_cliente" class="form-select" required>
+                                        <option value="" disabled selected>Seleccione el cliente...</option>
+                                        {% for c in lista_clientes %}
+                                        <option value="{{ c['id_cliente'] }}">{{ c['nombre'] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Empleado que Asiste</label>
+                                    <select name="sel_empleado" class="form-select" required>
+                                        <option value="" disabled selected>Seleccione el empleado...</option>
+                                        {% for e in lista_empleados %}
+                                        <option value="{{ e['id_empleado'] }}">{{ e['nombre'] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Fecha de Renta (Salida)</label>
+                                    <input type="date" name="txt_fecha_renta" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Fecha Devolución Estipulada</label>
+                                    <input type="date" name="txt_fecha_devolucion" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Precio por Día (RD$)</label>
+                                    <input type="number" step="0.01" name="txt_monto_x_dia" class="form-control" placeholder="Ej: 2500.00" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Comentario de Salida</label>
+                                    <textarea name="txt_comentario" class="form-control" rows="2" placeholder="Opcional..."></textarea>
+                                </div>
+                            </div>
+                        </div> 
+                    </div>
+                    <div class="modal-footer bg-light p-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">Generar Contrato de Renta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditarRenta" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title fw-bold">📝 Corregir Datos de Renta Activa</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/editar_renta_activa" method="POST">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="txt_no_renta" id="edit_no_renta">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Vehículo</label>
+                                    <select name="sel_vehiculo" id="edit_sel_vehiculo" class="form-select" required>
+                                        {% for v in lista_vehiculos %}
+                                        <option value="{{ v['id_vehiculo'] }}">{{ v['descripcion'] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Cliente</label>
+                                    <select name="sel_cliente" id="edit_sel_cliente" class="form-select" required>
+                                        {% for c in lista_clientes %}
+                                        <option value="{{ c['id_cliente'] }}">{{ c['nombre'] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Empleado</label>
+                                    <select name="sel_empleado" id="edit_sel_empleado" class="form-select" required>
+                                        {% for e in lista_empleados %}
+                                        <option value="{{ e['id_empleado'] }}">{{ e['nombre'] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Fecha de Renta</label>
+                                    <input type="date" name="txt_fecha_renta" id="edit_txt_fecha_renta" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Fecha Devolución Estipulada</label>
+                                    <input type="date" name="txt_fecha_devolucion" id="edit_txt_fecha_devolucion" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Precio por Día (RD$)</label>
+                                    <input type="number" step="0.01" name="txt_monto_x_dia" id="edit_txt_monto_x_dia" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">Comentario de Salida</label>
+                                    <textarea name="txt_comentario" id="edit_txt_comentario" class="form-control" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div> 
+                    </div>
+                    <div class="modal-footer bg-light p-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-dark px-4 fw-bold">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalDevolucionRapida" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold">Recibir Vehículo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/marcar_devolucion" method="POST">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="txt_no_renta" id="id_renta_cambio">
+                        <div class="mb-0">
+                            <label class="form-label small fw-bold text-dark">Fecha de Entrada Real</label>
+                            <input type="date" name="txt_fecha_devolucion" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer table-light p-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Atrás</button>
+                        <button type="submit" class="btn btn-sm btn-success px-4 fw-bold">Cambiar a Devuelto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Escucha clics del botón verde Devolver
+            const botonesCambiar = document.querySelectorAll('.btn-cambiar-estado');
+            botonesCambiar.forEach(boton => {
+                boton.addEventListener('click', function() {
+                    document.getElementById('id_renta_cambio').value = this.getAttribute('data-id');
+                });
+            });
+
+            // 2. Escucha clics del botón gris Editar
+            const botonesEditar = document.querySelectorAll('.btn-editar-renta');
+            botonesEditar.forEach(boton => {
+                boton.addEventListener('click', function() {
+                    document.getElementById('edit_no_renta').value = this.getAttribute('data-id');
+                    document.getElementById('edit_sel_vehiculo').value = this.getAttribute('data-vehiculo');
+                    document.getElementById('edit_sel_cliente').value = this.getAttribute('data-cliente');
+                    document.getElementById('edit_sel_empleado').value = this.getAttribute('data-empleado');
+                    document.getElementById('edit_txt_fecha_renta').value = this.getAttribute('data-renta');
+                    document.getElementById('edit_txt_fecha_devolucion').value = this.getAttribute('data-devolucion');
+                    document.getElementById('edit_txt_monto_x_dia').value = this.getAttribute('data-monto');
+                    document.getElementById('edit_txt_comentario').value = this.getAttribute('data-comentario');
+                });
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
