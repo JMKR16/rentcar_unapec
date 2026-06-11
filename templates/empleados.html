@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RentCar - Gestión de Clientes</title>
+    <title>RentCar - Gestión de Empleados</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -13,13 +13,13 @@
             <a class="navbar-brand" href="/">UNAPEC RentCar</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link active" href="/">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/">Clientes</a></li>
                     <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
                     <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
                     <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
                     <li class="nav-item"><a class="nav-link" href="/tipos_combustible">Tipos de Combustible</a></li>
                     <li class="nav-item"><a class="nav-link" href="/vehiculos">Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/empleados">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/empleados">Empleados</a></li>
                 </ul>
             </div>
         </div>
@@ -41,18 +41,18 @@
     <div class="container mt-4">
         <div class="card shadow-sm p-4 bg-white">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Catálogo de Clientes Oficiales</h2>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarCliente">
-                    + Agregar Cliente
+                <h2>Catálogo de Empleados Activos</h2>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarEmpleado">
+                    + Registrar Empleado
                 </button>
             </div>
             
             <div class="d-flex justify-content-end mb-3 gap-2">
                 <span class="text-muted my-auto me-2 small">Mostrar:</span>
-                <a href="/?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                <a href="/empleados?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
                     Solo Activos
                 </a>
-                <a href="/?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                <a href="/empleados?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
                     Ver Todos (Incluir Inactivos)
                 </a>
             </div>
@@ -64,28 +64,28 @@
                             <th>ID</th>
                             <th>Nombre Completo</th>
                             <th>Cédula</th>
-                            <th>No. Tarjeta CR</th>
-                            <th>Límite de Crédito</th>
-                            <th>Tipo Persona</th>
+                            <th>Tanda Laboral</th>
+                            <th>% Comisión</th>
+                            <th>Fecha Ingreso</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for c in lista_clientes %}
+                        {% for e in lista_empleados %}
                         <tr>
-                            <td>{{ c.id_cliente }}</td>
-                            <td><strong>{{ c.nombre }}</strong></td>
-                            <td><span class="badge bg-secondary">{{ c.cedula }}</span></td>
-                            <td><code>{{ c.no_tarjeta_cr }}</code></td>
-                            <td>RD$ {{ "{:,.2f}".format(c.limite_credito) }}</td>
+                            <td>{{ e.id_empleado }}</td>
+                            <td><strong>{{ e.nombre }}</strong></td>
+                            <td><span class="badge bg-secondary">{{ e.cedula }}</span></td>
                             <td>
-                                <span class="badge {% if c.tipo_persona == 'Física' %}bg-info text-dark{% else %}bg-primary{% endif %}">
-                                    {{ c.tipo_persona }}
+                                <span class="badge {% if e.tanda_labor == 'Matutina' %}bg-warning text-dark{% elif e.tanda_labor == 'Vespertina' %}bg-info text-dark{% else %}bg-dark{% endif %}">
+                                    {{ e.tanda_labor }}
                                 </span>
                             </td>
+                            <td>{{ e.porciento_comision }}%</td>
+                            <td>{{ e.fecha_income if e.fecha_ingreso is not defined else e.fecha_ingreso }}</td>
                             <td>
-                                {% if c.estado == 'Activo' %}
+                                {% if e.estado == 'Activo' %}
                                     <span class="badge bg-success">Activo</span>
                                 {% else %}
                                     <span class="badge bg-danger">Inactivo</span>
@@ -93,20 +93,20 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarCliente{{ c.id_cliente }}">
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarEmpleado{{ e.id_empleado }}">
                                         Editar
                                     </button>
 
-                                    {% if c.estado == 'Activo' %}
-                                        <a href="/cambiar_estado_cliente/{{ c.id_cliente }}/Inactivo" 
+                                    {% if e.estado == 'Activo' %}
+                                        <a href="/cambiar_estado_empleado/{{ e.id_empleado }}/Inactivo" 
                                            class="btn btn-warning"
-                                           onclick="return confirm('¿Seguro que deseas inhabilitar al cliente «{{ c.nombre }}»?');">
+                                           onclick="return confirm('¿Seguro que deseas inhabilitar al empleado «{{ e.nombre }}»?');">
                                             Inhabilitar
                                         </a>
                                     {% else %}
-                                        <a href="/cambiar_estado_cliente/{{ c.id_cliente }}/Activo" 
+                                        <a href="/cambiar_estado_empleado/{{ e.id_empleado }}/Activo" 
                                            class="btn btn-success"
-                                           onclick="return confirm('¿Deseas volver a habilitar al cliente «{{ c.nombre }}»?');">
+                                           onclick="return confirm('¿Deseas volver a activar al empleado «{{ e.nombre }}»?');">
                                             Habilitar
                                         </a>
                                     {% endif %}
@@ -114,37 +114,38 @@
                             </td>
                         </tr>
 
-                        <div class="modal fade" id="modalEditarCliente{{ c.id_cliente }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal fade" id="modalEditarEmpleado{{ e.id_empleado }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog text-start">
                                 <div class="modal-content">
                                     <div class="modal-header bg-dark text-white">
-                                        <h5 class="modal-title">Modificar Perfil de Cliente #{{ c.id_cliente }}</h5>
+                                        <h5 class="modal-title">Modificar Expediente #{{ e.id_empleado }}</h5>
                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <form action="/editar_cliente/{{ c.id_cliente }}" method="POST">
+                                    <form action="/editar_empleado/{{ e.id_empleado }}" method="POST">
                                         <div class="modal-body row g-3">
                                             <div class="col-12">
                                                 <label class="form-label font-weight-bold">Nombre Completo</label>
-                                                <input type="text" name="txt_nombre_edit" class="form-control" value="{{ c.nombre }}" required>
+                                                <input type="text" name="txt_nombre_edit" class="form-control" value="{{ e.nombre }}" required>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label font-weight-bold">Cédula</label>
-                                                <input type="text" name="txt_cedula_edit" class="form-control" value="{{ c.cedula }}" required>
+                                                <input type="text" name="txt_cedula_edit" class="form-control" value="{{ e.cedula }}" required>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label font-weight-bold">No. Tarjeta CR</label>
-                                                <input type="text" name="txt_tarjeta_edit" class="form-control" value="{{ c.no_tarjeta_cr }}" required>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label font-weight-bold">Límite de Crédito (RD$)</label>
-                                                <input type="number" step="0.01" name="txt_limite_edit" class="form-control" value="{{ c.limite_credito }}" required>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label font-weight-bold">Tipo Persona</label>
-                                                <select name="sel_tipo_persona_edit" class="form-select">
-                                                    <option value="Física" {% if c.tipo_persona == 'Física' %}selected{% endif %}>Física</option>
-                                                    <option value="Jurídica" {% if c.tipo_persona == 'Jurídica' %}selected{% endif %}>Jurídica</option>
+                                                <label class="form-label font-weight-bold">Tanda Laboral</label>
+                                                <select name="sel_tanda_edit" class="form-select">
+                                                    <option value="Matutina" {% if e.tanda_labor == 'Matutina' %}selected{% endif %}>Matutina</option>
+                                                    <option value="Vespertina" {% if e.tanda_labor == 'Vespertina' %}selected{% endif %}>Vespertina</option>
+                                                    <option value="Nocturna" {% if e.tanda_labor == 'Nocturna' %}selected{% endif %}>Nocturna</option>
                                                 </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">Porcentaje Comisión (%)</label>
+                                                <input type="number" name="txt_comision_edit" class="form-control" value="{{ e.porciento_comision }}" min="0" max="100" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">Fecha de Ingreso</label>
+                                                <input type="date" name="txt_fecha_ingreso_edit" class="form-control" value="{{ e.fecha_ingreso }}" required>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
@@ -162,49 +163,50 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalAgregarCliente" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="modalAgregarEmpleado" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Registrar Nuevo Cliente</h5>
+                    <h5 class="modal-title">Registrar Nuevo Empleado</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="/guardar_cliente" method="POST">
+                <form action="/guardar_empleado" method="POST">
                     <div class="modal-body row g-3">
                         <div class="col-12">
                             <label class="form-label font-weight-bold">Nombre Completo</label>
-                            <input type="text" name="txt_nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
+                            <input type="text" name="txt_nombre" class="form-control" placeholder="Ej: Marcos Díaz" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label font-weight-bold">Cédula</label>
                             <input type="text" name="txt_cedula" class="form-control" placeholder="001-0000000-0" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label font-weight-bold">No. Tarjeta CR</label>
-                            <input type="text" name="txt_tarjeta" class="form-control" placeholder="4000-1234-5678-9010" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label font-weight-bold">Límite Crédito (RD$)</label>
-                            <input type="number" step="0.01" name="txt_limite" class="form-control" placeholder="Ej: 50000" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label font-weight-bold">Tipo Persona</label>
-                            <select name="sel_tipo_persona" class="form-select">
-                                <option value="Física">Física</option>
-                                <option value="Jurídica">Jurídica</option>
+                            <label class="form-label font-weight-bold">Tanda Laboral</label>
+                            <select name="sel_tanda" class="form-select">
+                                <option value="Matutina">Matutina</option>
+                                <option value="Vespertina">Vespertina</option>
+                                <option value="Nocturna">Nocturna</option>
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-weight-bold">Porcentaje Comisión (%)</label>
+                            <input type="number" name="txt_comision" class="form-control" placeholder="Ej: 5" min="0" max="100" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-weight-bold">Fecha de Ingreso</label>
+                            <input type="date" name="txt_fecha_ingreso" class="form-control" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label font-weight-bold">Estado Inicial</label>
                             <select name="sel_estado" class="form-select">
-                                <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
+                                <option value="Activo">Activo (Trabajando)</option>
+                                <option value="Inactivo">Inactivo (Licencia / Desvinculado)</option>
                             </select>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+                        <button type="submit" class="btn btn-primary">Registrar Empleado</button>
                     </div>
                 </form>
             </div>
