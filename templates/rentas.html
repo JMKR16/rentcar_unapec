@@ -295,7 +295,45 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. Escucha clics del botón verde Devolver
+            
+            // ==========================================
+            // CONTROL DE FECHAS: MODAL NUEVA RENTA
+            // ==========================================
+            // Buscamos los inputs de fecha dentro del modal de nueva renta
+            const modalNueva = document.getElementById('modalNuevaRenta');
+            const inputRentaNueva = modalNueva.querySelector('input[name="txt_fecha_renta"]');
+            const inputDevolucionNueva = modalNueva.querySelector('input[name="txt_fecha_devolucion"]');
+
+            // Cuando cambie la fecha de renta, actualizamos el mínimo permitido en la devolución
+            inputRentaNueva.addEventListener('change', function() {
+                inputDevolucionNueva.min = this.value;
+                
+                // Si la fecha de devolución que ya estaba puesta es menor a la nueva fecha de renta, la limpia
+                if (inputDevolucionNueva.value && inputDevolucionNueva.value < this.value) {
+                    inputDevolucionNueva.value = '';
+                }
+            });
+
+
+            // ==========================================
+            //  CONTROL DE FECHAS: MODAL EDITAR RENTA
+            // ==========================================
+            const inputRentaEditar = document.getElementById('edit_txt_fecha_renta');
+            const inputDevolucionEditar = document.getElementById('edit_txt_fecha_devolucion');
+
+            // Cuando cambie la fecha de renta en la edición, bloqueamos en el segundo input
+            inputRentaEditar.addEventListener('change', function() {
+                inputDevolucionEditar.min = this.value;
+                if (inputDevolucionEditar.value && inputDevolucionEditar.value < this.value) {
+                    inputDevolucionEditar.value = '';
+                }
+            });
+
+
+            // ==========================================
+            //  INYECCIÓN DINÁMICA DE DATOS A MODALES
+            // ==========================================
+            // 1. Botón Devolver Verde
             const botonesCambiar = document.querySelectorAll('.btn-cambiar-estado');
             botonesCambiar.forEach(boton => {
                 boton.addEventListener('click', function() {
@@ -303,16 +341,25 @@
                 });
             });
 
-            // 2. Escucha clics del botón gris Editar
+            // 2. Botón Editar Gris
             const botonesEditar = document.querySelectorAll('.btn-editar-renta');
             botonesEditar.forEach(boton => {
                 boton.addEventListener('click', function() {
+                    const fechaRenta = this.getAttribute('data-renta');
+
                     document.getElementById('edit_no_renta').value = this.getAttribute('data-id');
                     document.getElementById('edit_sel_vehiculo').value = this.getAttribute('data-vehiculo');
                     document.getElementById('edit_sel_cliente').value = this.getAttribute('data-cliente');
                     document.getElementById('edit_sel_empleado').value = this.getAttribute('data-empleado');
-                    document.getElementById('edit_txt_fecha_renta').value = this.getAttribute('data-renta');
-                    document.getElementById('edit_txt_fecha_devolucion').value = this.getAttribute('data-devolucion');
+                    
+                    // Inyectamos las fechas
+                    inputRentaEditar.value = fechaRenta;
+                    inputDevolucionEditar.value = this.getAttribute('data-devolucion');
+                    
+                    // CRUCIAL: Al abrir el modal de edición, aplicamos inmediatamente el bloqueo
+                    // basado en la fecha de renta que ya venía guardada de la base de datos
+                    inputDevolucionEditar.min = fechaRenta;
+
                     document.getElementById('edit_txt_monto_x_dia').value = this.getAttribute('data-monto');
                     document.getElementById('edit_txt_comentario').value = this.getAttribute('data-comentario');
                 });
