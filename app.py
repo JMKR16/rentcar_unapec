@@ -42,7 +42,7 @@ def autenticar():
             session['usuario_id'] = usuario['id_usuario']
             session['usuario_nombre'] = usuario['nombre']
             flash(f"¡Bienvenido al sistema, {usuario['nombre']}!", "success")
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard')) # Redirige al dashboard en lugar de clientes
         else:
             flash("Correo o contraseña incorrectos.", "danger")
             return redirect(url_for('login'))
