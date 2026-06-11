@@ -1,10 +1,65 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from database import configurar_db
 
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_temporal' # Requerido para las alertas flash
 mysql = configurar_db(app)
 
+
+# ==========================================
+#  SEGURIDAD Y CONTROL DE ACCESO (LOGIN)
+# ==========================================
+
+@app.route('/')
+def login():
+    # Si ya inició sesión, se es redirigido directo a clientes
+    if 'usuario_id' in session:
+        return redirect(url_for('listar_clientes'))
+    return render_template('login.html')
+
+@app.route('/autenticar', methods=['POST'])
+def autenticar():
+    correo = request.form.get('txt_correo', '').strip()
+    clave = request.form.get('txt_clave', '').strip()
+    
+    if not correo or not clave:
+        flash("Por favor, llene todos los campos.", "warning")
+        return redirect(url_for('login'))
+        
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT id_usuario, nombre, clave, estado FROM usuarios WHERE correo = %s", (correo,))
+        usuario = cursor.fetchone()
+        cursor.close()
+        
+        # Al usar DictCursor, valida los campos como diccionario
+        if usuario and usuario['clave'] == clave:
+            if usuario['estado'] != 'Activo':
+                flash("Este usuario se encuentra inactivo.", "danger")
+                return redirect(url_for('login'))
+                
+            # Se guardan los datos en la sesión global de Flask
+            session['usuario_id'] = usuario['id_usuario']
+            session['usuario_nombre'] = usuario['nombre']
+            flash(f"¡Bienvenido al sistema, {usuario['nombre']}!", "success")
+            return redirect(url_for('listar_clientes'))
+        else:
+            flash("Correo o contraseña incorrectos.", "danger")
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        flash(f"Error de autenticación: {str(e)}", "danger")
+        return redirect(url_for('login'))
+
+@app.route('/logout')
+def logout():
+    session.clear() # Limpia las cookies de sesión
+    flash("Sesión cerrada correctamente.", "info")
+    return redirect(url_for('login'))
+
+# =================================================================================
+# Función de validación de cédula dominicana según el algoritmo oficial de la JCE
+# =================================================================================
 
 def validar_cedula_dominicana(cedula_str):
     #  Limpia guiones y espacios por si vienen en el texto
@@ -18,7 +73,7 @@ def validar_cedula_dominicana(cedula_str):
     multiplicadores = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1]
     total_suma = 0
     
-    # 4. Recorremos y aplicamos el algoritmo
+    #  Recorre y aplica el algoritmo
     for i in range(11):
         digito = int(cedula[i])
         producto = digito * multiplicadores[i]
@@ -29,15 +84,21 @@ def validar_cedula_dominicana(cedula_str):
         else:
             total_suma += producto
             
-    # 5. Si es múltiplo de 10, la cédula es matemáticamente válida
+    # Si es múltiplo de 10, la cédula es matemáticamente válida
     return total_suma % 10 == 0
 
 
-# ======================================
-#  CÓDIGO DE CLIENTES (Validación de cédula incluida)
-# ======================================
-@app.route('/')
+# ================================================================================
+#  CÓDIGO DE CLIENTES 
+# ================================================================================
+
+@app.route('/clientes') # <-- Cambio de / a /clientes, ya que el login ahora es la raíz del sitio
 def listar_clientes():
+
+    #  Escudo de protección: Si no hay sesión, va para afuera
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión.", "danger")
+        return redirect(url_for('login'))
     try:
         filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
@@ -67,7 +128,7 @@ def guardar_cliente():
         flash("Todos los campos obligatorios del cliente deben ser completados.", "warning")
         return redirect(url_for('listar_clientes'))
         
-    #  GUARDIA 1: VALIDACIÓN ALGORÍTMICA DE CÉDULA REAL
+    #  VALIDACIÓN ALGORÍTMICA DE CÉDULA REAL
     if not validar_cedula_dominicana(cedula):
         flash(f"Error: La cédula '{cedula}' no es una cédula válida en República Dominicana.", "danger")
         return redirect(url_for('listar_clientes'))
@@ -75,7 +136,7 @@ def guardar_cliente():
     try:
         cursor = mysql.connection.cursor()
         
-        #  GUARDIA 2: VALIDACIÓN DE CÉDULA ÚNICA (Que no se repita en la BD)
+        #  VALIDACIÓN DE CÉDULA ÚNICA (Que no se repita en la BD)
         cursor.execute("SELECT id_cliente FROM clientes WHERE cedula = %s", (cedula,))
         if cursor.fetchone():
             cursor.close()
@@ -105,7 +166,7 @@ def editar_cliente(id_cliente):
         flash("Campos vacíos detectados al intentar actualizar.", "warning")
         return redirect(url_for('listar_clientes'))
         
-    # 🛡️ GUARDIA 1: VALIDACIÓN ALGORÍTMICA DE CÉDULA REAL EN EDICIÓN
+    #   VALIDACIÓN ALGORÍTMICA DE CÉDULA REAL EN EDICIÓN
     if not validar_cedula_dominicana(cedula):
         flash(f"Error: La cédula '{cedula}' no es una cédula válida.", "danger")
         return redirect(url_for('listar_clientes'))
@@ -113,7 +174,7 @@ def editar_cliente(id_cliente):
     try:
         cursor = mysql.connection.cursor()
         
-        # 🛡️ GUARDIA 2: VALIDACIÓN DE CÉDULA ÚNICA EN EDICIÓN
+        #  VALIDACIÓN DE CÉDULA ÚNICA EN EDICIÓN
         cursor.execute("SELECT id_cliente FROM clientes WHERE cedula = %s AND id_cliente != %s", (cedula, id_cliente))
         if cursor.fetchone():
             cursor.close()
@@ -144,11 +205,16 @@ def cambiar_estado_cliente(id_cliente, nuevo_estado):
         flash(f"Error al alternar estado del cliente: {str(e)}", "danger")
     return redirect(url_for('listar_clientes'))
 
-# ==========================================
+# ====================================================================================
 #  CRUD:  EMPLEADOS
-# ==========================================
+# ====================================================================================
+
 @app.route('/empleados')
 def listar_empleados():
+
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
+        return redirect(url_for('login'))
     try:
         filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
@@ -216,7 +282,7 @@ def editar_empleado(id_empleado):
         flash("Campos vacíos detectados al intentar actualizar el perfil.", "warning")
         return redirect(url_for('listar_empleados'))
         
-    # 🛡️ GUARDIA 1: VALIDADOR JCE EN EDICIÓN
+    #  VALIDADOR JCE EN EDICIÓN
     if not validar_cedula_dominicana(cedula):
         flash(f"Error: La cédula '{cedula}' no es válida.", "danger")
         return redirect(url_for('listar_empleados'))
@@ -224,7 +290,7 @@ def editar_empleado(id_empleado):
     try:
         cursor = mysql.connection.cursor()
         
-        # 🛡️ GUARDIA 2: CÉDULA ÚNICA EN EDICIÓN
+        #  CÉDULA ÚNICA EN EDICIÓN
         cursor.execute("SELECT id_empleado FROM empleados WHERE cedula = %s AND id_empleado != %s", (cedula, id_empleado))
         if cursor.fetchone():
             cursor.close()
@@ -255,12 +321,16 @@ def cambiar_estado_empleado(id_empleado, nuevo_estado):
         flash(f"Error al alternar estado del empleado: {str(e)}", "danger")
     return redirect(url_for('listar_empleados'))
 
-# ==========================================
+# ====================================================================================
 #  CRUD: TIPOS DE VEHÍCULOS
-# ==========================================
+# ====================================================================================
 
 @app.route('/tipos_vehiculos')
 def listar_tipos_vehiculos():
+
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
+        return redirect(url_for('login'))
     try:
         filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
@@ -330,6 +400,10 @@ def editar_tipo_vehiculo(id_tipo):
 
 @app.route('/marcas')
 def listar_marcas():
+
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
+        return redirect(url_for('login'))
     try:
         # Se captura si el usuario quiere ver 'todos' o solo los 'activos' (por defecto solo activos)
         filtro = request.args.get('ver', 'activos')
@@ -414,6 +488,11 @@ def editar_marca(id_marca):
 
 @app.route('/modelos')
 def listar_modelos():
+
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
+        return redirect(url_for('login'))
+    
     try:
         filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
@@ -500,6 +579,11 @@ def editar_modelo(id_modelo):
 
 @app.route('/tipos_combustible')
 def listar_combustibles():
+
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
+        return redirect(url_for('login'))
+    
     try:
         filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
@@ -565,8 +649,14 @@ def editar_combustible(id_combustible):
 # ==========================================
 #  CRUD: VEHÍCULOS 
 # ==========================================
+
 @app.route('/vehiculos')
 def listar_vehiculos():
+
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
+        return redirect(url_for('login'))
+    
     try:
         filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
@@ -730,6 +820,9 @@ def cambiar_estado_vehiculo(id_vehiculo, nuevo_estado):
 
 @app.route('/inspecciones')
 def listar_inspecciones():
+    if 'usuario_id' not in session:
+        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
+        return redirect(url_for('login'))
     try:
         filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
