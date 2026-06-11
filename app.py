@@ -998,8 +998,10 @@ def listar_rentas():
         cursor.execute(query)
         rentas = cursor.fetchall()
 
-        # 2. Alimentamos los selectores desplegables de los Modales (Crear y Editar)
-        cursor.execute("SELECT id_vehiculo, CONCAT(no_placa, ' - ', descripcion) AS descripcion FROM vehiculos WHERE estado = 'Activo'")
+        # Alimenta  los selectores desplegables de los Modales (Crear y Editar)
+        cursor.execute("SELECT id_vehiculo, CONCAT(no_placa, ' - ', descripcion) AS descripcion FROM vehiculos "
+                       "WHERE estado = 'Activo' "
+                       "AND id_vehiculo NOT IN (SELECT id_vehiculo FROM rentas WHERE estado = 'Activo')")
         vehiculos = cursor.fetchall()
         
         cursor.execute("SELECT id_cliente, nombre FROM clientes WHERE estado = 'Activo'")
@@ -1035,6 +1037,16 @@ def guardar_renta():
 
     try:
         cursor = mysql.connection.cursor()
+
+        # Validamos servidor-side que el vehículo no tenga otra renta activa abierta
+        cursor.execute("SELECT COUNT(*) AS cantidad FROM rentas WHERE id_vehiculo = %s AND estado = 'Activo'", (id_vehiculo,))
+        activo = cursor.fetchone()
+        cantidad_activa = activo['cantidad'] if isinstance(activo, dict) else activo[0]
+        if cantidad_activa > 0:
+            flash("El vehículo seleccionado ya está en renta y no ha sido devuelto.", "danger")
+            cursor.close()
+            return redirect(url_for('listar_rentas'))
+
         # El contrato nace estrictamente en 'Activo' con cantidad_dias = 0 y monto_total = 0.00
         query = """
             INSERT INTO rentas (id_vehiculo, id_cliente, id_empleado, fecha_renta, fecha_devolucion, monto_x_dia, cantidad_dias, monto_total, estado, comentario)
@@ -1093,7 +1105,7 @@ def marcar_devolucion():
 
     try:
         cursor = mysql.connection.cursor()
-        # Buscamos la fecha de salida guardada al inicio y la tarifa pactada
+        # Busca la fecha de salida guardada al inicio y la tarifa pactada
         cursor.execute("SELECT fecha_renta, monto_x_dia FROM rentas WHERE no_renta = %s", (no_renta,))
         renta = cursor.fetchone()
 
