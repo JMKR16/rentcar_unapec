@@ -372,6 +372,7 @@ def listar_vehiculos():
         cat_combustibles = cursor.fetchall()
         
         #  Se construye el query  de la tabla relacional CON INNER JOINS
+
         query_base = """
             SELECT 
                 v.id_vehiculo, v.descripcion, v.no_chasis, v.no_motor, v.no_placa,
@@ -379,7 +380,8 @@ def listar_vehiculos():
                 mo.descripcion AS modelo_nombre,
                 t.descripcion AS tipo_nombre,
                 c.descripcion AS combustible_nombre,
-                v.estado
+                v.estado,
+                v.id_marca, v.id_modelo, v.id_tipo_vehiculo, v.id_combustible
             FROM vehiculos v
             INNER JOIN marcas m ON v.id_marca = m.id_marca
             INNER JOIN modelos mo ON v.id_modelo = mo.id_modelo
@@ -439,7 +441,7 @@ def guardar_vehiculo():
             flash(f"Error: La placa '{placa}' ya está registrada en el sistema con otro vehículo.", "danger")
             return redirect(url_for('listar_vehiculos'))
             
-        # Si no existe, procedemos con la inserción normal
+        # Si no existe, procede con la inserción normal
         cursor.execute("""
             INSERT INTO vehiculos (descripcion, no_chasis, no_motor, no_placa, id_tipo_vehiculo, id_marca, id_modelo, id_combustible, estado)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -449,6 +451,51 @@ def guardar_vehiculo():
         flash(f"Vehículo '{descripcion}' [Placa: {placa}] registrado exitosamente.", "success")
     except Exception as e:
         flash(f"Error al insertar el vehículo: {str(e)}", "danger")
+        
+    return redirect(url_for('listar_vehiculos'))
+
+
+@app.route('/editar_vehiculo/<int:id_vehiculo>', methods=['POST'])
+def editar_vehiculo(id_vehiculo):
+    descripcion = request.form.get('txt_descripcion_edit', '').strip()
+    chasis = request.form.get('txt_chasis_edit', '').strip()
+    motor = request.form.get('txt_motor_edit', '').strip()
+    placa = request.form.get('txt_placa_edit', '').strip()
+    
+    id_marca = request.form.get('sel_marca_edit')
+    id_modelo = request.form.get('sel_modelo_edit')
+    id_tipo = request.form.get('sel_tipo_edit')
+    id_combustible = request.form.get('sel_combustible_edit')
+    
+    if not descripcion or not chasis or not motor or not placa or not id_marca or not id_modelo or not id_tipo or not id_combustible:
+        flash("Todos los campos son obligatorios al editar el vehículo.", "warning")
+        return redirect(url_for('listar_vehiculos'))
+        
+    try:
+        cursor = mysql.connection.cursor()
+        
+        #  VALIDACIÓN DE PLACA ÚNICA (Excluyendo este mismo vehículo)
+        cursor.execute("SELECT id_vehiculo FROM vehiculos WHERE no_placa = %s AND id_vehiculo != %s", (placa, id_vehiculo))
+        placa_existente = cursor.fetchone()
+        
+        if placa_existente:
+            cursor.close()
+            flash(f"Error: La placa '{placa}' ya está registrada en otro vehículo.", "danger")
+            return redirect(url_for('listar_vehiculos'))
+            
+        # Ejecuta el UPDATE con todos los campos modificados
+        cursor.execute("""
+            UPDATE vehiculos 
+            SET descripcion = %s, no_chasis = %s, no_motor = %s, no_placa = %s, 
+                id_tipo_vehiculo = %s, id_marca = %s, id_modelo = %s, id_combustible = %s
+            WHERE id_vehiculo = %s
+        """, (descripcion, chasis, motor, placa, id_tipo, id_marca, id_modelo, id_combustible, id_vehiculo))
+        
+        mysql.connection.commit()
+        cursor.close()
+        flash("Datos del vehículo actualizados correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al actualizar el vehículo: {str(e)}", "danger")
         
     return redirect(url_for('listar_vehiculos'))
 

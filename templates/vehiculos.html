@@ -94,14 +94,110 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarVehiculo{{ v.id_vehiculo }}">
+                                        Editar
+                                    </button>
+
                                     {% if v.estado == 'Activo' %}
-                                        <a href="/cambiar_estado_vehiculo/{{ v.id_vehiculo }}/Inactivo" class="btn btn-warning">Inhabilitar</a>
+                                        <a href="/cambiar_estado_vehiculo/{{ v.id_vehiculo }}/Inactivo" 
+                                           class="btn btn-warning"
+                                           onclick="return confirm('¿Seguro que deseas inhabilitar este vehículo?');">
+                                            Inhabilitar
+                                        </a>
                                     {% else %}
-                                        <a href="/cambiar_estado_vehiculo/{{ v.id_vehiculo }}/Activo" class="btn btn-success">Habilitar</a>
+                                        <a href="/cambiar_estado_vehiculo/{{ v.id_vehiculo }}/Activo" 
+                                           class="btn btn-success"
+                                           onclick="return confirm('¿Deseas habilitar este vehículo de nuevo?');">
+                                            Habilitar
+                                        </a>
                                     {% endif %}
                                 </div>
                             </td>
                         </tr>
+
+                        <div class="modal fade" id="modalEditarVehiculo{{ v.id_vehiculo }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg text-start">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-dark text-white">
+                                        <h5 class="modal-title">Modificar Vehículo Oficial #{{ v.id_vehiculo }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form action="/editar_vehiculo/{{ v.id_vehiculo }}" method="POST">
+                                        <div class="modal-body row g-3">
+                                            
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">Descripción / Nombre</label>
+                                                <input type="text" name="txt_descripcion_edit" class="form-control" value="{{ v.descripcion }}" required maxlength="100">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">No. Chasis</label>
+                                                <input type="text" name="txt_chasis_edit" class="form-control" value="{{ v.no_chasis }}" required maxlength="50">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">No. Motor</label>
+                                                <input type="text" name="txt_motor_edit" class="form-control" value="{{ v.no_motor }}" required maxlength="50">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">No. Placa</label>
+                                                <input type="text" name="txt_placa_edit" class="form-control" value="{{ v.no_placa }}" required maxlength="20">
+                                            </div>
+
+                                            <hr class="my-4 text-muted">
+                                            <h6 class="mb-2 text-primary font-weight-bold">Actualizar Relaciones</h6>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">Marca</label>
+                                                <select name="sel_marca_edit" class="form-select" required>
+                                                    {% for m in marcas_form %}
+                                                        <option value="{{ m.id_marca }}" {% if m.descripcion == v.marca_nombre %}selected{% endif %}>
+                                                            {{ m.descripcion }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">Modelo</label>
+                                                <select name="sel_modelo_edit" class="form-select" required>
+                                                    {% for mo in modelos_form %}
+                                                        <option value="{{ mo.id_modelo }}" {% if mo.descripcion == v.modelo_nombre %}selected{% endif %}>
+                                                            {{ mo.descripcion }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">Tipo de Vehículo</label>
+                                                <select name="sel_tipo_edit" class="form-select" required>
+                                                    {% for t in tipos_form %}
+                                                        <option value="{{ t.id_tipo_vehiculo }}" {% if t.descripcion == v.tipo_nombre %}selected{% endif %}>
+                                                            {{ t.descripcion }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label font-weight-bold">Tipo de Combustible</label>
+                                                <select name="sel_combustible_edit" class="form-select" required>
+                                                    {% for c in combustibles_form %}
+                                                        <option value="{{ c.id_combustible }}" {% if c.descripcion == v.combustible_nombre %}selected{% endif %}>
+                                                            {{ c.descripcion }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                         {% endfor %}
                     </tbody>
                 </table>
