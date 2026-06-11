@@ -14,7 +14,7 @@ mysql = configurar_db(app)
 def login():
     # Si ya inició sesión, se es redirigido directo a clientes
     if 'usuario_id' in session:
-        return redirect(url_for('listar_clientes'))
+        return redirect(url_for('dashboard')) #  Cambiado a dashboard
     return render_template('login.html')
 
 @app.route('/autenticar', methods=['POST'])
@@ -42,7 +42,7 @@ def autenticar():
             session['usuario_id'] = usuario['id_usuario']
             session['usuario_nombre'] = usuario['nombre']
             flash(f"¡Bienvenido al sistema, {usuario['nombre']}!", "success")
-            return redirect(url_for('listar_clientes'))
+            return redirect(url_for('dashboard'))
         else:
             flash("Correo o contraseña incorrectos.", "danger")
             return redirect(url_for('login'))
@@ -56,6 +56,49 @@ def logout():
     session.clear() # Limpia las cookies de sesión
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for('login'))
+
+
+# ==========================================
+#  DASHBOARD / PANEL DE CONTROL PRINCIPAL
+# ==========================================
+@app.route('/dashboard')
+def dashboard():
+   
+    if 'usuario_id' not in session:
+        flash("Por favor, inicie sesión para acceder al sistema.", "danger")
+        return redirect(url_for('login'))
+        
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Cuenta a los  Clientes Activos
+        cursor.execute("SELECT COUNT(*) AS total FROM clientes WHERE estado = 'Activo'")
+        total_clientes = cursor.fetchone()['total']
+        
+        # Cuenta a los  Vehículos Totales
+        cursor.execute("SELECT COUNT(*) AS total FROM vehiculos WHERE estado = 'Activo'")
+        total_vehiculos = cursor.fetchone()['total']
+        
+        # Cuenta a los Empleados Activos
+        cursor.execute("SELECT COUNT(*) AS total FROM empleados WHERE estado = 'Activo'")
+        total_empleados = cursor.fetchone()['total']
+        
+        # Cuenta las Inspecciones Realizadas
+        cursor.execute("SELECT COUNT(*) AS total FROM inspecciones")
+        total_inspecciones = cursor.fetchone()['total']
+        
+        cursor.close()
+        
+        # Renderiza la nueva plantilla pasando todas las variables estadísticas
+        return render_template('dashboard.html', 
+                               clientes=total_clientes, 
+                               vehiculos=total_vehiculos, 
+                               empleados=total_empleados,
+                               inspecciones=total_inspecciones)
+                               
+    except Exception as e:
+        flash(f"Error al cargar las métricas del dashboard: {str(e)}", "danger")
+        return render_template('dashboard.html', clientes=0, vehiculos=0, empleados=0, inspecciones=0)
 
 # =================================================================================
 # Función de validación de cédula dominicana según el algoritmo oficial de la JCE
