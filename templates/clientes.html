@@ -13,7 +13,7 @@
             <a class="navbar-brand" href="/">RentCar</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="/dashboard">🏠 Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"> Inicio</a></li>
                     <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
                     <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
                     <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
@@ -53,12 +53,8 @@
             
             <div class="d-flex justify-content-end mb-3 gap-2">
                 <span class="text-muted my-auto me-2 small">Mostrar:</span>
-                <a href="/?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
-                    Solo Activos
-                </a>
-                <a href="/?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
-                    Ver Todos (Incluir Inactivos)
-                </a>
+                <a href="/clientes?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">Solo Activos </a>
+                <a href="/clientes?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}"> Ver Todos (Incluir Inactivos)</a>
             </div>
 
             <div class="table-responsive">
