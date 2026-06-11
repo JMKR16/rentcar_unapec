@@ -5,42 +5,144 @@ app = Flask(__name__)
 app.secret_key = 'clave_secreta_temporal' # Requerido para las alertas flash
 mysql = configurar_db(app)
 
+
+def validar_cedula_dominicana(cedula_str):
+    #  Limpia guiones y espacios por si vienen en el texto
+    cedula = cedula_str.replace("-", "").strip()
+    
+    #  Valida que tenga exactamente 11 dígitos numéricos
+    if len(cedula) != 11 or not cedula.isdigit():
+        return False
+        
+    #  Patrón de multiplicación oficial de la JCE
+    multiplicadores = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1]
+    total_suma = 0
+    
+    # 4. Recorremos y aplicamos el algoritmo
+    for i in range(11):
+        digito = int(cedula[i])
+        producto = digito * multiplicadores[i]
+        
+        # Si el producto da 10 o más, suma sus dígitos individuales
+        if producto >= 10:
+            total_suma += (producto // 10) + (producto % 10)
+        else:
+            total_suma += producto
+            
+    # 5. Si es múltiplo de 10, la cédula es matemáticamente válida
+    return total_suma % 10 == 0
+
+
 # ======================================
-#  CÓDIGO DE CLIENTES (Pestaña Inicio)
+#  CÓDIGO DE CLIENTES (Validación de cédula incluida)
 # ======================================
 @app.route('/')
-def inicio():
+def listar_clientes():
     try:
+        filtro = request.args.get('ver', 'activos')
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM clientes")
-        lista_clientes = cursor.fetchall()
+        
+        if filtro == 'todos':
+            cursor.execute("SELECT id_cliente, nombre, cedula, no_tarjeta_cr, limite_credito, tipo_persona, estado FROM clientes ORDER BY id_cliente ASC")
+        else:
+            cursor.execute("SELECT id_cliente, nombre, cedula, no_tarjeta_cr, limite_credito, tipo_persona, estado FROM clientes WHERE estado = 'Activo' ORDER BY id_cliente ASC")
+            
+        clientes = cursor.fetchall()
         cursor.close()
-        return render_template('clientes.html', clientes_pantalla=lista_clientes)
+        return render_template('clientes.html', lista_clientes=clientes, filtro_actual=filtro)
     except Exception as e:
         flash(f"Error al cargar clientes: {str(e)}", "danger")
-        return render_template('clientes.html', clientes_pantalla=[])
+        return render_template('clientes.html', lista_clientes=[], filtro_actual='activos')
 
 @app.route('/guardar_cliente', methods=['POST'])
 def guardar_cliente():
     nombre = request.form.get('txt_nombre', '').strip()
     cedula = request.form.get('txt_cedula', '').strip()
     tarjeta = request.form.get('txt_tarjeta', '').strip()
-    limite = request.form.get('txt_limite', '').strip()
-    tipo = request.form.get('sel_tipo', '').strip()
+    limite = request.form.get('txt_limite', '0').strip()
+    tipo_persona = request.form.get('sel_tipo_persona', 'Física')
+    estado = request.form.get('sel_estado', 'Activo')
     
+    if not nombre or not cedula or not tarjeta or not limite:
+        flash("Todos los campos obligatorios del cliente deben ser completados.", "warning")
+        return redirect(url_for('listar_clientes'))
+        
+    #  GUARDIA 1: VALIDACIÓN ALGORÍTMICA DE CÉDULA REAL
+    if not validar_cedula_dominicana(cedula):
+        flash(f"Error: La cédula '{cedula}' no es una cédula válida en República Dominicana.", "danger")
+        return redirect(url_for('listar_clientes'))
+        
     try:
         cursor = mysql.connection.cursor()
+        
+        #  GUARDIA 2: VALIDACIÓN DE CÉDULA ÚNICA (Que no se repita en la BD)
+        cursor.execute("SELECT id_cliente FROM clientes WHERE cedula = %s", (cedula,))
+        if cursor.fetchone():
+            cursor.close()
+            flash(f"Error: La cédula '{cedula}' ya pertenece a un cliente registrado.", "danger")
+            return redirect(url_for('listar_clientes'))
+            
         cursor.execute("""
-            INSERT INTO clientes (nombre, cedula, no_tarjeta_cr, limite_credito, tipo_persona)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (nombre, cedula, tarjeta, limite, tipo))
+            INSERT INTO clientes (nombre, cedula, no_tarjeta_cr, limite_credito, tipo_persona, estado)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (nombre, cedula, tarjeta, limite, tipo_persona, estado))
         mysql.connection.commit()
         cursor.close()
-        flash("Cliente guardado exitosamente", "success")
+        flash(f"Cliente '{nombre}' registrado de manera exitosa.", "success")
     except Exception as e:
         flash(f"Error al guardar cliente: {str(e)}", "danger")
-    return redirect(url_for('inicio'))
+    return redirect(url_for('listar_clientes'))
 
+@app.route('/editar_cliente/<int:id_cliente>', methods=['POST'])
+def editar_cliente(id_cliente):
+    nombre = request.form.get('txt_nombre_edit', '').strip()
+    cedula = request.form.get('txt_cedula_edit', '').strip()
+    tarjeta = request.form.get('txt_tarjeta_edit', '').strip()
+    limite = request.form.get('txt_limite_edit', '0').strip()
+    tipo_persona = request.form.get('sel_tipo_persona_edit', 'Física')
+    
+    if not nombre or not cedula or not tarjeta or not limite:
+        flash("Campos vacíos detectados al intentar actualizar.", "warning")
+        return redirect(url_for('listar_clientes'))
+        
+    # 🛡️ GUARDIA 1: VALIDACIÓN ALGORÍTMICA DE CÉDULA REAL EN EDICIÓN
+    if not validar_cedula_dominicana(cedula):
+        flash(f"Error: La cédula '{cedula}' no es una cédula válida.", "danger")
+        return redirect(url_for('listar_clientes'))
+        
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # 🛡️ GUARDIA 2: VALIDACIÓN DE CÉDULA ÚNICA EN EDICIÓN
+        cursor.execute("SELECT id_cliente FROM clientes WHERE cedula = %s AND id_cliente != %s", (cedula, id_cliente))
+        if cursor.fetchone():
+            cursor.close()
+            flash(f"Error: La cédula '{cedula}' ya está asignada a otro cliente.", "danger")
+            return redirect(url_for('listar_clientes'))
+            
+        cursor.execute("""
+            UPDATE clientes 
+            SET nombre = %s, cedula = %s, no_tarjeta_cr = %s, limite_credito = %s, tipo_persona = %s 
+            WHERE id_cliente = %s
+        """, (nombre, cedula, tarjeta, limite, tipo_persona, id_cliente))
+        mysql.connection.commit()
+        cursor.close()
+        flash("Datos de perfil del cliente actualizados correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al actualizar cliente: {str(e)}", "danger")
+    return redirect(url_for('listar_clientes'))
+
+@app.route('/cambiar_estado_cliente/<int:id_cliente>/<string:nuevo_estado>')
+def cambiar_estado_cliente(id_cliente, nuevo_estado):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE clientes SET estado = %s WHERE id_cliente = %s", (nuevo_estado, id_cliente))
+        mysql.connection.commit()
+        cursor.close()
+        flash(f"Estado del cliente modificado a '{nuevo_estado}' con éxito.", "success")
+    except Exception as e:
+        flash(f"Error al alternar estado del cliente: {str(e)}", "danger")
+    return redirect(url_for('listar_clientes'))
 
 # ==========================================
 #  CRUD: TIPOS DE VEHÍCULOS
