@@ -159,89 +159,9 @@ app.register_blueprint(tipos_vehiculos_bp)
 #  CRUD: MARCAS 
 # ===================================
 
-@app.route('/marcas')
-def listar_marcas():
-
-    if 'usuario_id' not in session:
-        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
-        return redirect(url_for('login'))
-    try:
-        # Se captura si el usuario quiere ver 'todos' o solo los 'activos' (por defecto solo activos)
-        filtro = request.args.get('ver', 'activos')
-        
-        cursor = mysql.connection.cursor()
-        
-        if filtro == 'todos':
-            # Trae absolutamente todo (Activos e Inactivos)
-            cursor.execute("SELECT id_marca, descripcion, estado FROM marcas ORDER BY id_marca ASC")
-        else:
-            
-            cursor.execute("SELECT id_marca, descripcion, estado FROM marcas WHERE estado = 'Activo' ORDER BY id_marca ASC")
-            
-        marcas = cursor.fetchall()
-        cursor.close()
-        
-        return render_template('marcas.html', lista_marcas=marcas, filtro_actual=filtro)
-    except Exception as e:
-        flash(f"Error al cargar marcas: {str(e)}", "danger")
-        return render_template('marcas.html', lista_marcas=[], filtro_actual='activos')
-
-@app.route('/guardar_marca', methods=['POST'])
-def guardar_marca():
-    nombre_marca = request.form.get('txt_marca', '').strip()
-    estado = request.form.get('sel_estado', 'Activo')
-    
-    if not nombre_marca:
-        flash("El nombre de la marca es obligatorio.", "warning")
-        return redirect(url_for('listar_marcas'))
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO marcas (descripcion, estado) VALUES (%s, %s)", (nombre_marca, estado))
-        mysql.connection.commit()
-        cursor.close()
-        flash(f"Marca '{nombre_marca}' registrada exitosamente.", "success")
-    except Exception as e:
-        flash(f"Error al guardar marca: {str(e)}", "danger")
-    return redirect(url_for('listar_marcas'))
-
-@app.route('/cambiar_estado_marca/<int:id_marca>/<string:nuevo_estado>')
-def cambiar_estado_marca(id_marca, nuevo_estado):
-    try:
-        cursor = mysql.connection.cursor()
-
-        # Se Ejecuta el Soft Delete o la reactivación lógica sin romper llaves foráneas
-        cursor.execute("UPDATE marcas SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
-        mysql.connection.commit()
-        cursor.close()
-        flash(f"Estado de la marca actualizado a '{nuevo_estado}' con éxito.", "success")
-    except Exception as e:
-        flash(f"Error al cambiar el estado de la marca: {str(e)}", "danger")
-    return redirect(url_for('listar_marcas'))
-
-@app.route('/editar_marca/<int:id_marca>', methods=['POST'])
-def editar_marca(id_marca):
-    nuevo_nombre = request.form.get('txt_descripcion_edit', '').strip()
-    
-    if not nuevo_nombre:
-        flash("La descripción de la marca no puede estar vacía.", "warning")
-        return redirect(url_for('listar_marcas'))
-        
-    try:
-        cursor = mysql.connection.cursor()
-        # Modificamos únicamente la columna descripción
-        cursor.execute("""
-            UPDATE marcas 
-            SET descripcion = %s 
-            WHERE id_marca = %s
-        """, (nuevo_nombre, id_marca))
-        
-        mysql.connection.commit()
-        cursor.close()
-        flash("Marca renombrada exitosamente.", "success")
-    except Exception as e:
-        flash(f"Error al actualizar el nombre de la marca: {str(e)}", "danger")
-        
-    return redirect(url_for('listar_marcas'))
+#  REGISTRO DEL BLUEPRINT DE MARCAS
+from routes.marcas import marcas_bp
+app.register_blueprint(marcas_bp)
 
 # ==================================
 #  CRUD: MODELOS 
