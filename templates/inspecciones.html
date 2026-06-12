@@ -13,20 +13,21 @@
             <a class="navbar-brand" href="/">RentCar</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                 <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/tipos_combustible">Tipos de Combustible</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/vehiculos">Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/clientes">Clientes</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/empleados">Empleados</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/inspecciones">Inspecciones</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_vehiculos.listar_tipos_vehiculos') }}">Tipos de Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('marcas.listar_marcas') }}">Marcas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('modelos.listar_modelos') }}">Modelos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_combustible.listar_combustibles') }}">Tipos de Combustible</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('vehiculos.listar_vehiculos') }}">Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('clientes.listar_clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('empleados.listar_empleados') }}">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('inspecciones.listar_inspecciones') }}">Inspecciones</a></li>
                     <li class="nav-item"><a class="nav-link" href="/rentas">Rentas</a></li>
                 </ul>
                 <div class="d-flex ms-auto">
                      <a href="/logout" class="btn btn-sm btn-outline-danger">Cerrar Sesión</a>
                 </div>
+            </div>
         </div>
     </nav>
 
@@ -54,8 +55,8 @@
             
             <div class="d-flex justify-content-end mb-3 gap-2">
                 <span class="text-muted my-auto me-2 small">Mostrar:</span>
-                <a href="/inspecciones?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">Solo Activos</a>
-                <a href="/inspecciones?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">Ver Todas</a>
+                <a href="{{ url_for('inspecciones.listar_inspecciones', ver='activos') }}" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">Solo Activos</a>
+                <a href="{{ url_for('inspecciones.listar_inspecciones', ver='todos') }}" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">Ver Todas</a>
             </div>
 
             <div class="table-responsive">
@@ -111,16 +112,16 @@
 
                             <td>
                                 {% if i.estado == 'Activo' %}
-                                    <a href="/cambiar_estado_inspeccion/{{ i.id_inspeccion }}/Inactivo" 
+                                    <a href="{{ url_for('inspecciones.cambiar_estado_inspeccion', id_inspeccion=i.id_inspeccion, nuevo_estado='Inactivo') }}" 
                                        class="btn btn-sm btn-warning"
                                        onclick="return confirm('¿Seguro que deseas anular esta hoja de inspección?');">
-                                        Anular
+                                         Anular
                                     </a>
                                 {% else %}
-                                    <a href="/cambiar_estado_inspeccion/{{ i.id_inspeccion }}/Activo" 
+                                    <a href="{{ url_for('inspecciones.cambiar_estado_inspeccion', id_inspeccion=i.id_inspeccion, nuevo_estado='Activo') }}" 
                                        class="btn btn-sm btn-success"
                                        onclick="return confirm('¿Deseas reactivar esta inspección?');">
-                                        Reactivar
+                                         Reactivar
                                     </a>
                                 {% endif %}
                             </td>
@@ -139,7 +140,7 @@
                     <h5 class="modal-title">Nueva Inspección</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="/guardar_inspeccion" method="POST">
+                <form action="{{ url_for('inspecciones.guardar_inspeccion') }}" method="POST">
                     <div class="modal-body row g-3 text-start px-4">
                         
                         <div class="col-md-6">
