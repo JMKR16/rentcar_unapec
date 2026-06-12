@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RentCar - Gestión de Vehículos Officials</title>
+    <title>RentCar - Gestión de Vehículos Oficiales</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -13,20 +13,21 @@
             <a class="navbar-brand" href="/">RentCar</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                     <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/tipos_combustible">Tipos de Combustible</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/vehiculos">Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/clientes">Clientes</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/empleados">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_vehiculos.listar_tipos_vehiculos') }}">Tipos de Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('marcas.listar_marcas') }}">Marcas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('modelos.listar_modelos') }}">Modelos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_combustible.listar_combustibles') }}">Tipos de Combustible</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('vehiculos.listar_vehiculos') }}">Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('clientes.listar_clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('empleados.listar_empleados') }}">Empleados</a></li>
                     <li class="nav-item"><a class="nav-link" href="/inspecciones">Inspecciones</a></li>
                     <li class="nav-item"><a class="nav-link" href="/rentas">Rentas</a></li>
                 </ul>
                 <div class="d-flex ms-auto">
                      <a href="/logout" class="btn btn-sm btn-outline-danger">Cerrar Sesión</a>
                 </div>
+            </div>
         </div>
     </nav>
 
@@ -54,10 +55,10 @@
             
             <div class="d-flex justify-content-end mb-3 gap-2">
                 <span class="text-muted my-auto me-2 small">Mostrar:</span>
-                <a href="/vehiculos?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                <a href="{{ url_for('vehiculos.listar_vehiculos', ver='activos') }}" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
                     Solo Disponibles / Activos
                 </a>
-                <a href="/vehiculos?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                <a href="{{ url_for('vehiculos.listar_vehiculos', ver='todos') }}" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
                     Ver Todos (Incluir Inactivos)
                 </a>
             </div>
@@ -84,8 +85,8 @@
                         <tr>
                             <td>{{ v.id_vehiculo }}</td>
                             <td><strong>{{ v.descripcion }}</strong></td>
-                            <td><small class="text-muted">{{ v.no_chasis }}</small></td>
-                            <td><small class="text-muted">{{ v.no_motor }}</small></td>
+                            <td><span class="text-muted small">{{ v.no_chasis }}</span></td>
+                            <td><span class="text-muted small">{{ v.no_motor }}</span></td>
                             <td><span class="badge bg-secondary">{{ v.no_placa }}</span></td>
                             <td>{{ v.marca_nombre }}</td>
                             <td>{{ v.modelo_nombre }}</td>
@@ -105,16 +106,16 @@
                                     </button>
 
                                     {% if v.estado == 'Activo' %}
-                                        <a href="/cambiar_estado_vehiculo/{{ v.id_vehiculo }}/Inactivo" 
+                                        <a href="{{ url_for('vehiculos.cambiar_estado_vehiculo', id_vehiculo=v.id_vehiculo, nuevo_estado='Inactivo') }}" 
                                            class="btn btn-warning"
                                            onclick="return confirm('¿Seguro que deseas inhabilitar este vehículo?');">
-                                            Inhabilitar
+                                             Inhabilitar
                                         </a>
                                     {% else %}
-                                        <a href="/cambiar_estado_vehiculo/{{ v.id_vehiculo }}/Activo" 
+                                        <a href="{{ url_for('vehiculos.cambiar_estado_vehiculo', id_vehiculo=v.id_vehiculo, nuevo_estado='Activo') }}" 
                                            class="btn btn-success"
                                            onclick="return confirm('¿Deseas habilitar este vehículo de nuevo?');">
-                                            Habilitar
+                                             Habilitar
                                         </a>
                                     {% endif %}
                                 </div>
@@ -128,7 +129,7 @@
                                         <h5 class="modal-title">Modificar Vehículo Oficial #{{ v.id_vehiculo }}</h5>
                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <form action="/editar_vehiculo/{{ v.id_vehiculo }}" method="POST">
+                                    <form action="{{ url_for('vehiculos.editar_vehiculo', id_vehiculo=v.id_vehiculo) }}" method="POST">
                                         <div class="modal-body row g-3">
                                             
                                             <div class="col-md-6">
@@ -148,8 +149,8 @@
                                                 <input type="text" name="txt_placa_edit" class="form-control" value="{{ v.no_placa }}" required maxlength="20">
                                             </div>
 
-                                            <hr class="my-4 text-muted">
-                                            <h6 class="mb-2 text-primary font-weight-bold">Actualizar Relaciones</h6>
+                                            <div class="col-12"><hr class="my-2 text-muted"></div>
+                                            <h6 class="mb-0 text-primary font-weight-bold">Actualizar Relaciones</h6>
 
                                             <div class="col-md-6">
                                                 <label class="form-label font-weight-bold">Marca</label>
@@ -218,7 +219,7 @@
                     <h5 class="modal-title">Registrar Nuevo Vehículo Relacional</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="/guardar_vehiculo" method="POST">
+                <form action="{{ url_for('vehiculos.guardar_vehiculo') }}" method="POST">
                     <div class="modal-body row g-3">
                         
                         <div class="col-md-6">
@@ -238,8 +239,8 @@
                             <input type="text" name="txt_placa" class="form-control" placeholder="Ej: G123456" required maxlength="20">
                         </div>
 
-                        <hr class="my-4 text-muted">
-                        <h6 class="mb-2 text-primary font-weight-bold">Relaciones del Catálogo (Solo Activos)</h6>
+                        <div class="col-12"><hr class="my-2 text-muted"></div>
+                        <h6 class="mb-0 text-primary font-weight-bold">Relaciones del Catálogo (Solo Activos)</h6>
 
                         <div class="col-md-6">
                             <label class="form-label font-weight-bold">Marca</label>
@@ -249,17 +250,16 @@
                                     <option value="{{ m.id_marca }}">{{ m.descripcion }}</option>
                                 {% endfor %}
                             </select>
-                            
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label font-weight-bold">Modelo</label>
                             <select name="sel_modelo" id="sel_modelo" class="form-select" required disabled>
-                            <option value="" disabled selected>-- Selecciona Modelo --</option>
-                            {% for mo in modelos_form %}
-                                <option value="{{ mo.id_modelo }}" data-marca="{{ mo.id_marca }}">{{ mo.descripcion }}</option>
-                            {% endfor %}
-                        </select>
+                                <option value="" disabled selected>-- Selecciona Modelo --</option>
+                                {% for mo in modelos_form %}
+                                    <option value="{{ mo.id_modelo }}" data-marca="{{ mo.id_marca }}">{{ mo.descripcion }}</option>
+                                {% endfor %}
+                            </select>
                             <div class="form-text text-muted" id="modelo_ayuda">Selecciona una marca primero.</div>
                         </div>
 
@@ -303,7 +303,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-   
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const selectMarca = document.getElementById('sel_marca');
