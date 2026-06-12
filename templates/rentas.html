@@ -9,19 +9,19 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="/dashboard">RentCar</a>
+            <a class="navbar-brand fw-bold" href="/">RentCar</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/modelos">Modelos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/tipos_combustible">Tipos de Combustible</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/vehiculos">Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/clientes">Clientes</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/empleados">Empleados</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/inspecciones">Inspecciones</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/rentas">Rentas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_vehiculos.listar_tipos_vehiculos') }}">Tipos de Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('marcas.listar_marcas') }}">Marcas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('modelos.listar_modelos') }}">Modelos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_combustible.listar_combustibles') }}">Tipos de Combustible</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('vehiculos.listar_vehiculos') }}">Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('clientes.listar_clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('empleados.listar_empleados') }}">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('inspecciones.listar_inspecciones') }}">Inspecciones</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('rentas.listar_rentas') }}">Rentas</a></li>
                 </ul>
                 <div class="d-flex ms-auto">
                     <a href="/logout" class="btn btn-sm btn-outline-danger">Cerrar Sesión</a>
@@ -56,7 +56,7 @@
 
         <div class="card border-0 shadow-sm p-4 bg-white">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 text-center">
                     <thead class="table-light">
                         <tr>
                             <th>No. Renta</th>
@@ -142,7 +142,7 @@
                     <h5 class="modal-title fw-bold"> Registrar Salida de Vehículo (Nueva Renta)</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="/guardar_renta" method="POST">
+                <form action="{{ url_for('rentas.guardar_renta') }}" method="POST">
                     <div class="modal-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -210,7 +210,7 @@
                     <h5 class="modal-title fw-bold">📝 Corregir Datos de Renta Activa</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="/editar_renta_activa" method="POST">
+                <form action="{{ url_for('rentas.editar_renta_activa') }}" method="POST">
                     <div class="modal-body p-4">
                         <input type="hidden" name="txt_no_renta" id="edit_no_renta">
                         <div class="row g-3">
@@ -276,7 +276,7 @@
                     <h5 class="modal-title fw-bold">Recibir Vehículo</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="/marcar_devolucion" method="POST">
+                <form action="{{ url_for('rentas.marcar_devolucion') }}" method="POST">
                     <div class="modal-body p-4">
                         <input type="hidden" name="txt_no_renta" id="id_renta_cambio">
                         <div class="mb-0">
@@ -299,29 +299,23 @@
             // ==========================================
             // CONTROL DE FECHAS: MODAL NUEVA RENTA
             // ==========================================
-            // Buscamos los inputs de fecha dentro del modal de nueva renta
             const modalNueva = document.getElementById('modalNuevaRenta');
             const inputRentaNueva = modalNueva.querySelector('input[name="txt_fecha_renta"]');
             const inputDevolucionNueva = modalNueva.querySelector('input[name="txt_fecha_devolucion"]');
 
-            // Cuando cambie la fecha de renta, actualizamos el mínimo permitido en la devolución
             inputRentaNueva.addEventListener('change', function() {
                 inputDevolucionNueva.min = this.value;
-                
-                // Si la fecha de devolución que ya estaba puesta es menor a la nueva fecha de renta, la limpia
                 if (inputDevolucionNueva.value && inputDevolucionNueva.value < this.value) {
                     inputDevolucionNueva.value = '';
                 }
             });
 
-
             // ==========================================
-            //  CONTROL DE FECHAS: MODAL EDITAR RENTA
+            // CONTROL DE FECHAS: MODAL EDITAR RENTA
             // ==========================================
             const inputRentaEditar = document.getElementById('edit_txt_fecha_renta');
             const inputDevolucionEditar = document.getElementById('edit_txt_fecha_devolucion');
 
-            // Cuando cambie la fecha de renta en la edición, bloqueamos en el segundo input
             inputRentaEditar.addEventListener('change', function() {
                 inputDevolucionEditar.min = this.value;
                 if (inputDevolucionEditar.value && inputDevolucionEditar.value < this.value) {
@@ -329,11 +323,9 @@
                 }
             });
 
-
             // ==========================================
-            //  INYECCIÓN DINÁMICA DE DATOS A MODALES
+            // INYECCIÓN DINÁMICA DE DATOS A MODALES
             // ==========================================
-            // 1. Botón Devolver Verde
             const botonesCambiar = document.querySelectorAll('.btn-cambiar-estado');
             botonesCambiar.forEach(boton => {
                 boton.addEventListener('click', function() {
@@ -341,7 +333,6 @@
                 });
             });
 
-            // 2. Botón Editar Gris
             const botonesEditar = document.querySelectorAll('.btn-editar-renta');
             botonesEditar.forEach(boton => {
                 boton.addEventListener('click', function() {
@@ -352,12 +343,8 @@
                     document.getElementById('edit_sel_cliente').value = this.getAttribute('data-cliente');
                     document.getElementById('edit_sel_empleado').value = this.getAttribute('data-empleado');
                     
-                    // Inyectamos las fechas
                     inputRentaEditar.value = fechaRenta;
                     inputDevolucionEditar.value = this.getAttribute('data-devolucion');
-                    
-                    // CRUCIAL: Al abrir el modal de edición, aplicamos inmediatamente el bloqueo
-                    // basado en la fecha de renta que ya venía guardada de la base de datos
                     inputDevolucionEditar.min = fechaRenta;
 
                     document.getElementById('edit_txt_monto_x_dia').value = this.getAttribute('data-monto');
