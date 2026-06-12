@@ -13,20 +13,21 @@
             <a class="navbar-brand" href="/">RentCar</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                     <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/tipos_vehiculos">Tipos de Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/marcas">Marcas</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/modelos">Modelos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_vehiculos.listar_tipos_vehiculos') }}">Tipos de Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('marcas.listar_marcas') }}">Marcas</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('modelos.listar_modelos') }}">Modelos</a></li>
                     <li class="nav-item"><a class="nav-link" href="/tipos_combustible">Tipos de Combustible</a></li>
                     <li class="nav-item"><a class="nav-link" href="/vehiculos">Vehículos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/clientes">Clientes</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/empleados">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('clientes.listar_clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('empleados.listar_empleados') }}">Empleados</a></li>
                     <li class="nav-item"><a class="nav-link" href="/inspecciones">Inspecciones</a></li>
                     <li class="nav-item"><a class="nav-link" href="/rentas">Rentas</a></li>
                 </ul>
                 <div class="d-flex ms-auto">
                      <a href="/logout" class="btn btn-sm btn-outline-danger">Cerrar Sesión</a>
                 </div>
+            </div>
         </div>
     </nav>
 
@@ -54,15 +55,15 @@
 
             <div class="d-flex justify-content-end mb-3 gap-2">
                 <span class="text-muted my-auto me-2 small">Mostrar:</span>
-                <a href="/modelos?ver=activos" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                <a href="{{ url_for('modelos.listar_modelos', ver='activos') }}" class="btn btn-sm {% if filtro_actual == 'activos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
                     Solo Activos
                 </a>
-                <a href="/modelos?ver=todos" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                <a href="{{ url_for('modelos.listar_modelos', ver='todos') }}" class="btn btn-sm {% if filtro_actual == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">
                     Ver Todos (Incluir Inactivos)
                 </a>
             </div>
 
-            <table class="table table-hover table-striped align-middle">
+            <table class="table table-hover table-striped align-middle text-center">
                 <thead class="table-dark">
                     <tr>
                         <th>ID Modelo</th>
@@ -92,16 +93,16 @@
                                 </button>
 
                                 {% if mod.estado == 'Activo' %}
-                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Inactivo" 
+                                    <a href="{{ url_for('modelos.cambiar_estado_modelo', id_modelo=mod.id_modelo, nuevo_estado='Inactivo') }}" 
                                        class="btn btn-warning" 
                                        onclick="return confirm('¿Estás seguro de inhabilitar el modelo «{{ mod.descripcion }}»?');">
-                                        Inhabilitar
+                                         Inhabilitar
                                     </a>
                                 {% else %}
-                                    <a href="/cambiar_estado_modelo/{{ mod.id_modelo }}/Activo" 
+                                    <a href="{{ url_for('modelos.cambiar_estado_modelo', id_modelo=mod.id_modelo, nuevo_estado='Activo') }}" 
                                        class="btn btn-success" 
                                        onclick="return confirm('¿Deseas habilitar el modelo «{{ mod.descripcion }}»?');">
-                                        Habilitar
+                                         Habilitar
                                     </a>
                                 {% endif %}
                             </div>
@@ -115,7 +116,7 @@
                                     <h5 class="modal-title">Modificar Nombre del Modelo</h5>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <form action="/editar_modelo/{{ mod.id_modelo }}" method="POST">
+                                <form action="{{ url_for('modelos.editar_modelo', id_modelo=mod.id_modelo) }}" method="POST">
                                     <div class="modal-body">
                                         <div class="mb-2 text-muted small">Marca vinculada: <strong>{{ mod.marca_nombre }}</strong></div>
                                         <div class="mb-3">
@@ -145,7 +146,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <form action="/guardar_modelo" method="POST">
+                <form action="{{ url_for('modelos.guardar_modelo') }}" method="POST">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label font-weight-bold">Selecciona la Marca Padre</label>
