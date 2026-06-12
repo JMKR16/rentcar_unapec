@@ -167,6 +167,7 @@ app.register_blueprint(marcas_bp)
 #  CRUD: MODELOS 
 # ==================================
 
+#  REGISTRO DEL BLUEPRINT DE MODELOS
 from routes.modelos import modelos_bp
 app.register_blueprint(modelos_bp)
 
@@ -174,74 +175,9 @@ app.register_blueprint(modelos_bp)
 #  CRUD: TIPOS DE COMBUSTIBLE 
 # ==========================================
 
-@app.route('/tipos_combustible')
-def listar_combustibles():
-
-    if 'usuario_id' not in session:
-        flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
-        return redirect(url_for('login'))
-    
-    try:
-        filtro = request.args.get('ver', 'activos')
-        cursor = mysql.connection.cursor()
-        
-        if filtro == 'todos':
-            cursor.execute("SELECT id_combustible, descripcion, estado FROM tipos_combustible ORDER BY id_combustible ASC")
-        else:
-            cursor.execute("SELECT id_combustible, descripcion, estado FROM tipos_combustible WHERE estado = 'Activo' ORDER BY id_combustible ASC")
-            
-        combustibles = cursor.fetchall()
-        cursor.close()
-        return render_template('tipos_combustible.html', lista_combustibles=combustibles, filtro_actual=filtro)
-    except Exception as e:
-        flash(f"Error al cargar tipos de combustible: {str(e)}", "danger")
-        return render_template('tipos_combustible.html', lista_combustibles=[], filtro_actual='activos')
-
-@app.route('/guardar_combustible', methods=['POST'])
-def guardar_combustible():
-    descripcion = request.form.get('txt_descripcion', '').strip()
-    estado = request.form.get('sel_estado', 'Activo')
-    
-    if not descripcion:
-        flash("La descripción del combustible es obligatoria.", "warning")
-        return redirect(url_for('listar_combustibles'))
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO tipos_combustible (descripcion, estado) VALUES (%s, %s)", (descripcion, estado))
-        mysql.connection.commit()
-        cursor.close()
-        flash(f"Combustible '{descripcion}' registrado exitosamente.", "success")
-    except Exception as e:
-        flash(f"Error al guardar tipo de combustible: {str(e)}", "danger")
-    return redirect(url_for('listar_combustibles'))
-
-@app.route('/cambiar_estado_combustible/<int:id_combustible>/<string:nuevo_estado>')
-def cambiar_estado_combustible(id_combustible, nuevo_estado):
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("UPDATE tipos_combustible SET estado = %s WHERE id_combustible = %s", (nuevo_estado, id_combustible))
-        mysql.connection.commit()
-        cursor.close()
-        flash(f"Estado del combustible actualizado a '{nuevo_estado}' con éxito.", "success")
-    except Exception as e:
-        flash(f"Error al cambiar el estado del combustible: {str(e)}", "danger")
-    return redirect(url_for('listar_combustibles'))
-
-@app.route('/editar_combustible/<int:id_combustible>', methods=['POST'])
-def editar_combustible(id_combustible):
-    nuevo_nombre = request.form.get('txt_descripcion_edit', '').strip()
-    if not nuevo_nombre:
-        flash("La descripción del combustible no puede estar vacía.", "warning")
-        return redirect(url_for('listar_combustibles'))
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("UPDATE tipos_combustible SET descripcion = %s WHERE id_combustible = %s", (nuevo_nombre, id_combustible))
-        mysql.connection.commit()
-        cursor.close()
-        flash("Tipo de combustible renombrado exitosamente.", "success")
-    except Exception as e:
-        flash(f"Error al actualizar el tipo de combustible: {str(e)}", "danger")
-    return redirect(url_for('listar_combustibles'))
+# REGISTRO DEL BLUEPRINT DE TIPOS DE COMBUSTIBLE
+from routes.tipos_combustible import tipos_combustible_bp
+app.register_blueprint(tipos_combustible_bp)
 
 # ==========================================
 #  CRUD: VEHÍCULOS 
