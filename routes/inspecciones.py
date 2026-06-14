@@ -62,7 +62,7 @@ def listar_inspecciones():
 
 @inspecciones_bp.route('/guardar_inspeccion', methods=['POST'])
 def guardar_inspeccion():
-    # Importación local segura
+    #  Importación local segura
     from app import mysql
     
     id_vehiculo = request.form.get('sel_vehiculo')
@@ -83,9 +83,29 @@ def guardar_inspeccion():
     g_tra_izq = 'Sí' if request.form.get('chk_goma_tra_izq') else 'No'
     g_tra_der = 'Sí' if request.form.get('chk_goma_tra_der') else 'No'
     
-    if not id_vehiculo or not id_cliente or not id_empleado or not fecha or not cantidad_combustible if 'quantity_fuel' in locals() else cantidad_combustible:
+    #  VALIDACIÓN CORREGIDA Y LIMPIA:
+    if not id_vehiculo or not id_cliente or not id_empleado or not fecha or not cantidad_combustible:
         flash("Todos los selectores y la fecha son obligatorios.", "warning")
         return redirect(url_for('inspecciones.listar_inspecciones'))
+        
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            INSERT INTO inspecciones (
+                id_vehiculo, id_cliente, id_empleado_inspeccion, fecha, cantidad_combustible,
+                tiene_ralladuras, tiene_goma_repuesta, tiene_gato, tiene_roturas_cristal,
+                goma_delantera_izq, goma_delantera_der, goma_trasera_izq, goma_trasera_der, estado
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'Activo')
+        """, (id_vehiculo, id_cliente, id_empleado, fecha, cantidad_combustible,
+              tiene_ralladuras, tiene_goma_repuesta, tiene_gato, tiene_roturas_cristal,
+              g_del_izq, g_del_der, g_tra_izq, g_tra_der))
+        mysql.connection.commit()
+        cursor.close()
+        flash("Hoja de inspección guardada con el reporte de neumáticos completo.", "success")
+    except Exception as e:
+        flash(f"Error técnico al insertar inspección: {str(e)}", "danger")
+        
+    return redirect(url_for('inspecciones.listar_inspecciones'))
         
     try:
         cursor = mysql.connection.cursor()
