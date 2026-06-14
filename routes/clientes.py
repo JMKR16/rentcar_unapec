@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 
-# 🔌 Creamos el Blueprint para Clientes (Sin importaciones globales de app.py aquí arriba)
+#  Crea el Blueprint para Clientes 
 clientes_bp = Blueprint('clientes', __name__)
 
 @clientes_bp.route('/clientes')
@@ -10,7 +10,7 @@ def listar_clientes():
         return redirect(url_for('login'))
         
     try:
-        # 🟢 Importación local segura
+        #  Importación local segura
         from app import mysql
         
         filtro = request.args.get('ver', 'activos')
@@ -31,7 +31,7 @@ def listar_clientes():
 
 @clientes_bp.route('/guardar_cliente', methods=['POST'])
 def guardar_cliente():
-    # 🟢 Importación local segura
+    # Importación local segura
     from app import mysql, validar_cedula_dominicana
     
     nombre = request.form.get('txt_nombre', '').strip()
@@ -73,7 +73,7 @@ def guardar_cliente():
 
 @clientes_bp.route('/editar_cliente/<int:id_cliente>', methods=['POST'])
 def editar_cliente(id_cliente):
-    # 🟢 Importación local segura
+    #  Importación local segura
     from app import mysql, validar_cedula_dominicana
     
     nombre = request.form.get('txt_nombre_edit', '').strip()
@@ -116,7 +116,7 @@ def editar_cliente(id_cliente):
 @clientes_bp.route('/cambiar_estado_cliente/<int:id_cliente>/<string:nuevo_estado>')
 def cambiar_estado_cliente(id_cliente, nuevo_estado):
     try:
-        # 🟢 Importación local segura
+        # Importación local segura
         from app import mysql
         
         cursor = mysql.connection.cursor()

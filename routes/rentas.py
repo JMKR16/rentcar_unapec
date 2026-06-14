@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from datetime import datetime
 
-#  Blueprint para Rentas
+# 🔌 Blueprint para Rentas
 rentas_bp = Blueprint('rentas', __name__)
 
 @rentas_bp.route('/rentas')
@@ -9,17 +9,14 @@ def listar_rentas():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
     try:
-        # Importación local segura
         from app import mysql
-        
         cursor = mysql.connection.cursor()
         
-        # 1. Traemos el historial de rentas uniendo los catálogos para ver Nombres en vez de IDs
         query = """
             SELECT r.no_renta, CONCAT(v.no_placa, ' - ', m.descripcion, ' ', md.descripcion) AS vehiculo, 
                    c.nombre AS cliente, e.nombre AS empleado, r.fecha_renta, r.fecha_devolucion, 
                    r.monto_x_dia, r.cantidad_dias, r.monto_total, r.estado,
-                   r.id_vehiculo, r.id_cliente, r.id_empleado, r.comentario
+                   r.id_vehiculo, r.id_cliente, r.id_empleado, r.comentario, r.id_inspeccion
             FROM rentas r
             JOIN empleados e ON r.id_empleado = e.id_empleado
             JOIN vehiculos v ON r.id_vehiculo = v.id_vehiculo
@@ -31,28 +28,27 @@ def listar_rentas():
         cursor.execute(query)
         rentas = cursor.fetchall()
 
-        # Alimenta los selectores desplegables de los Modales (Crear y Editar)
-        cursor.execute("SELECT id_vehiculo, CONCAT(no_placa, ' - ', descripcion) AS descripcion FROM vehiculos "
-                       "WHERE estado = 'Activo' "
-                       "AND id_vehiculo NOT IN (SELECT id_vehiculo FROM rentas WHERE estado = 'Activo')")
-        vehiculos = cursor.fetchall()
-        
-        cursor.execute("SELECT id_cliente, nombre FROM clientes WHERE estado = 'Activo'")
-        clientes = cursor.fetchall()
-        
-        cursor.execute("SELECT id_empleado, nombre FROM empleados WHERE estado = 'Activo'")
-        empleados = cursor.fetchall()
+        query_inspecciones = """
+            SELECT i.id_inspeccion, 
+                   CONCAT('Insp #', i.id_inspeccion, ' - ', v.no_placa, ' (', c.nombre, ')') AS descripcion
+            FROM inspecciones i
+            JOIN vehiculos v ON i.id_vehiculo = v.id_vehiculo
+            JOIN clientes c ON i.id_cliente = c.id_cliente
+            WHERE i.estado = 'Activo'
+              AND i.id_inspeccion NOT IN (SELECT id_inspeccion FROM rentas WHERE id_inspeccion IS NOT NULL)
+              AND v.id_vehiculo NOT IN (SELECT id_vehiculo FROM rentas WHERE estado = 'Activo')
+        """
+        cursor.execute(query_inspecciones)
+        inspecciones_disponibles = cursor.fetchall()
         
         cursor.close()
 
         return render_template('rentas.html', 
                                lista_rentas=rentas, 
-                               lista_vehiculos=vehiculos, 
-                               lista_clientes=clientes, 
-                               lista_empleados=empleados)
+                               lista_inspecciones=inspecciones_disponibles)
     except Exception as e:
         flash(f"Error al cargar el módulo de rentas: {str(e)}", "danger")
-        return render_template('rentas.html', lista_rentas=[], lista_vehiculos=[], lista_clientes=[], lista_empleados=[])
+        return render_template('rentas.html', lista_rentas=[], lista_inspecciones=[])
 
 
 @rentas_bp.route('/guardar_renta', methods=['POST'])
@@ -60,38 +56,40 @@ def guardar_renta():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
         
-    #  Importación local segura
     from app import mysql
-    
-    id_vehiculo = request.form.get('sel_vehiculo')
-    id_cliente = request.form.get('sel_cliente')
-    id_empleado = request.form.get('sel_empleado')
+    id_inspeccion = request.form.get('sel_inspeccion')
     fecha_renta_str = request.form.get('txt_fecha_renta')
-    fecha_devolucion_str = request.form.get('txt_fecha_devolucion')
     monto_x_dia = request.form.get('txt_monto_x_dia')
     comentario = request.form.get('txt_comentario', '').strip()
+
+    if not id_inspeccion or not fecha_renta_str or not monto_x_dia:
+        flash("Todos los campos obligatorios deben ser completados.", "warning")
+        return redirect(url_for('rentas.listar_rentas'))
 
     try:
         cursor = mysql.connection.cursor()
 
-        # Validamos servidor-side que el vehículo no tenga otra renta activa abierta
-        cursor.execute("SELECT COUNT(*) AS cantidad FROM rentas WHERE id_vehiculo = %s AND estado = 'Activo'", (id_vehiculo,))
-        activo = cursor.fetchone()
-        cantidad_activa = activo['cantidad'] if isinstance(activo, dict) else activo[0]
-        if cantidad_activa > 0:
-            flash("El vehículo seleccionado ya está en renta y no ha sido devuelto.", "danger")
+        cursor.execute("SELECT id_vehiculo, id_cliente, id_empleado_inspeccion FROM inspecciones WHERE id_inspeccion = %s", (id_inspeccion,))
+        datos_insp = cursor.fetchone()
+
+        if not datos_insp:
+            flash("La inspección seleccionada no es válida.", "danger")
             cursor.close()
             return redirect(url_for('rentas.listar_rentas'))
 
-        # El contrato nace estrictamente en 'Activo' con cantidad_dias = 0 y monto_total = 0.00
+        id_vehiculo = datos_insp['id_vehiculo'] if isinstance(datos_insp, dict) else datos_insp[0]
+        id_cliente = datos_insp['id_cliente'] if isinstance(datos_insp, dict) else datos_insp[1]
+        id_empleado = datos_insp['id_empleado_inspeccion'] if isinstance(datos_insp, dict) else datos_insp[2]
+
+        # 🟢 Nace con fecha_devolucion en NULL/None porque todavía está en uso
         query = """
-            INSERT INTO rentas (id_vehiculo, id_cliente, id_empleado, fecha_renta, fecha_devolucion, monto_x_dia, cantidad_dias, monto_total, estado, comentario)
-            VALUES (%s, %s, %s, %s, %s, %s, 0, 0.00, 'Activo', %s)
+            INSERT INTO rentas (id_vehiculo, id_cliente, id_empleado, id_inspeccion, fecha_renta, fecha_devolucion, monto_x_dia, cantidad_dias, monto_total, estado, comentario)
+            VALUES (%s, %s, %s, %s, %s, NULL, %s, 0, 0.00, 'Activo', %s)
         """
-        cursor.execute(query, (id_vehiculo, id_cliente, id_empleado, fecha_renta_str, fecha_devolucion_str, monto_x_dia, comentario))
+        cursor.execute(query, (id_vehiculo, id_cliente, id_empleado, id_inspeccion, fecha_renta_str, monto_x_dia, comentario))
         mysql.connection.commit()
         cursor.close()
-        flash("Contrato de renta generado exitosamente (Estado: Activo)", "success")
+        flash("Contrato de renta generado exitosamente. ¡Vehículo en uso!", "success")
     except Exception as e:
         flash(f"Error al procesar la salida del vehículo: {str(e)}", "danger")
         
@@ -103,27 +101,21 @@ def editar_renta_activa():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
         
-    #  Importación local segura
     from app import mysql
-    
     no_renta = request.form.get('txt_no_renta')
-    id_vehiculo = request.form.get('sel_vehiculo')
-    id_cliente = request.form.get('sel_cliente')
-    id_empleado = request.form.get('sel_empleado')
     fecha_renta_str = request.form.get('txt_fecha_renta')
-    fecha_devolucion_str = request.form.get('txt_fecha_devolucion')
     monto_x_dia = request.form.get('txt_monto_x_dia')
     comentario = request.form.get('txt_comentario', '').strip()
 
     try:
         cursor = mysql.connection.cursor()
+        # 🟢 Limpiamos el update quitando la fecha de devolución estipulada
         query = """
             UPDATE rentas 
-            SET id_vehiculo = %s, id_cliente = %s, id_empleado = %s, 
-                fecha_renta = %s, fecha_devolucion = %s, monto_x_dia = %s, comentario = %s
+            SET fecha_renta = %s, monto_x_dia = %s, comentario = %s
             WHERE no_renta = %s
         """
-        cursor.execute(query, (id_vehiculo, id_cliente, id_empleado, fecha_renta_str, fecha_devolucion_str, monto_x_dia, comentario, no_renta))
+        cursor.execute(query, (fecha_renta_str, monto_x_dia, comentario, no_renta))
         mysql.connection.commit()
         cursor.close()
         flash("Contrato de renta corregido con éxito", "success")
@@ -138,9 +130,7 @@ def marcar_devolucion():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
         
-    # 🟢 Importación local segura
     from app import mysql
-    
     no_renta = request.form.get('txt_no_renta')
     fecha_devolucion_str = request.form.get('txt_fecha_devolucion')
 
@@ -164,8 +154,13 @@ def marcar_devolucion():
         else:
             f_renta = f_renta_origen
 
+        # Doble validación en el Backend por seguridad:
         dias = (f_dev - f_renta).days
-        if dias <= 0:
+        if dias < 0:
+            flash("Error: La fecha de devolución no puede ser menor a la fecha de inicio.", "danger")
+            cursor.close()
+            return redirect(url_for('rentas.listar_rentas'))
+        elif dias == 0:
             dias = 1
             
         total_pesos = dias * monto_diario
