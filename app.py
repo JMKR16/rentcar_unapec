@@ -200,6 +200,15 @@ app.register_blueprint(inspecciones_bp)
 from routes.rentas import rentas_bp
 app.register_blueprint(rentas_bp)
 
+
+
+# =================================================================
+#  MÓDULO 10: CONSULTAS DINÁMICAS Y REPORTES
+# =================================================================
+# REGISTRO DEL BLUEPRINT DE CONSULTAS POR CRITERIOS
+from routes.consultas import consultas_bp
+app.register_blueprint(consultas_bp)
+
 # ======================
 #   CIERRE  DEL ARCHIVO
 # =======================

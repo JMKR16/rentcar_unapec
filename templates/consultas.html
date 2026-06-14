@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>RentCar - Consultas por Criterios</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="/">RentCar</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_vehiculos.listar_tipos_vehiculos') }}">Tipos de Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('marcas.listar_marcas') }}">Marcas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('modelos.listar_modelos') }}">Modelos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('tipos_combustible.listar_combustibles') }}">Tipos de Combustible</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('vehiculos.listar_vehiculos') }}">Vehículos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('clientes.listar_clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('empleados.listar_empleados') }}">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('inspecciones.listar_inspecciones') }}">Inspecciones</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('rentas.listar_rentas') }}">Rentas</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" href="{{ url_for('consultas.filtrar_rentas') }}">Consultas</a></li>
+                </ul>
+                <div class="d-flex ms-auto">
+                    <a href="/logout" class="btn btn-sm btn-outline-danger">Cerrar Sesión</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card border-0 shadow-sm p-4 mb-4 bg-white">
+            <h4 class="fw-bold mb-3 text-dark">🔍 Búsqueda y Consulta por Criterios</h4>
+            <p class="text-muted small mb-4">Filtrar el historial de rentas combinando los parámetros operativos del sistema.</p>
+            
+            <form action="{{ url_for('consultas.filtrar_rentas') }}" method="POST" id="formConsultas" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Filtrar por Vehículo</label>
+                    <select name="sel_vehiculo" id="filtro_vehiculo" class="form-select text-dark">
+                        <option value="">-- Todos los Vehículos --</option>
+                        {% for v in vehiculos %}
+                        <option value="{{ v.id_vehiculo }}" {% if f_vehiculo|string == v.id_vehiculo|string %}selected{% endif %}>{{ v.descripcion }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Estado de Renta</label>
+                    <select name="sel_estado" id="filtro_estado" class="form-select text-dark">
+                        <option value="">-- Todos los Estados --</option>
+                        <option value="Activo" {% if f_estado == 'Activo' %}selected{% endif %}>Activo (En Uso)</option>
+                        <option value="Devuelto" {% if f_estado == 'Devuelto' %}selected{% endif %}>Devuelto (Cerrado)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-secondary">Fecha Renta Desde</label>
+                    <input type="date" name="txt_fecha_desde" id="filtro_desde" value="{{ f_desde }}" class="form-control text-dark">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-secondary">Fecha Renta Hasta</label>
+                    <input type="date" name="txt_fecha_hasta" id="filtro_hasta" value="{{ f_hasta }}" class="form-control text-dark">
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button type="submit" name="btn_accion" value="buscar" class="btn btn-dark fw-bold w-100">Aplicar Filtros</button>
+                    <button type="submit" name="btn_accion" value="pdf" class="btn btn-primary fw-bold w-100">📄 Exportar PDF</button>
+                    <a href="{{ url_for('consultas.filtrar_rentas') }}" class="btn btn-outline-secondary w-100">Limpiar</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-3 bg-dark text-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold text-muted mb-1">Volumen de Rentas</h6>
+                            <h3 class="fw-bold mb-0">{{ total_rentas }} Rentas</h3>
+                        </div>
+                        <div class="fs-1 text-muted opacity-50">📋</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-3 bg-success text-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold text-white-50 mb-1">Monto Total Facturado</h6>
+                            <h3 class="fw-bold mb-0">RD$ {{ "{:,.2f}".format(total_dinero) }}</h3>
+                        </div>
+                        <div class="fs-1 text-white-50 opacity-50">💰</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 bg-white">
+            <h5 class="fw-bold mb-3 text-secondary">Historial Detallado</h5>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle mb-0 text-center text-dark">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>No. Renta</th>
+                            <th>Vehículo</th>
+                            <th>Cliente</th>
+                            <th>Asesor</th>
+                            <th>Fecha Salida</th>
+                            <th>Fecha Entrada</th>
+                            <th>Precio / Día</th>
+                            <th>Días</th>
+                            <th>Monto Total</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if rentas %}
+                            {% for r in rentas %}
+                            <tr>
+                                <td class="fw-bold text-dark">#{{ r.no_renta }}</td>
+                                <td class="text-dark">{{ r.vehiculo }}</td>
+                                <td class="text-dark">{{ r.cliente }}</td>
+                                <td class="text-dark"><small class="text-muted">{{ r.empleado }}</small></td>
+                                <td class="text-dark">{{ r.fecha_renta }}</td>
+                                <td class="text-dark">
+                                    {% if r.fecha_devolucion %}
+                                        {{ r.fecha_devolucion }}
+                                    {% else %}
+                                        <span class="text-muted small fst-italic fw-bold text-warning">En Uso</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-dark">RD$ {{ r.monto_x_dia }}</td>
+                                <td class="text-dark">{{ r.cantidad_dias }}</td>
+                                <td class="fw-bold text-success">RD$ {{ r.monto_total }}</td>
+                                <td>
+                                    <span class="badge rounded-pill {% if r.estado == 'Activo' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                        {{ r.estado }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center text-muted py-4">Ningún contrato coincide con los criterios de búsqueda seleccionados.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
