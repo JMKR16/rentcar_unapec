@@ -59,12 +59,39 @@ def cambiar_estado_marca(id_marca, nuevo_estado):
         from app import mysql
         
         cursor = mysql.connection.cursor()
+        
+        #  Si se intenta INACTIVAR la marca, validamos que no esté en uso
+        if nuevo_estado == 'Inactivo':
+            query_verificar = """
+                SELECT COUNT(r.no_renta) AS rentas_activas
+                FROM rentas r
+                JOIN vehiculos v ON r.id_vehiculo = v.id_vehiculo
+                WHERE v.id_marca = %s AND r.estado = 'Activo'
+            """
+            cursor.execute(query_verificar, (id_marca,))
+            chequeo = cursor.fetchone()
+            
+            # Controlamos si el cursor devuelve diccionario o tupla según tu configuración
+            rentas_activas = chequeo['rentas_activas'] if isinstance(chequeo, dict) else chequeo[0]
+            
+            # Si hay carros de esa marca corriendo en la calle, bloqueamos la acción de inmediato
+            if rentas_activas > 0:
+                cursor.close()
+                flash(" Operación denegada: No se puede inactivar esta marca porque posee vehículos asociados en rentas vigentes (en uso).", "danger")
+                return redirect(url_for('marcas.listar_marcas'))
+        
+        #  Actualiza el estado de la Marca
         cursor.execute("UPDATE marcas SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
+        
+        #  ACTUALIZACIÓN EN CASCADA: Desactiva/Activa todos sus modelos dependientes automáticamente
+        cursor.execute("UPDATE modelos SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
+        
         mysql.connection.commit()
         cursor.close()
-        flash(f"Estado de la marca actualizado a '{nuevo_estado}' con éxito.", "success")
+        flash(f"Estado de la marca y sus modelos dependientes actualizado a '{nuevo_estado}' con éxito.", "success")
+        
     except Exception as e:
-        flash(f"Error al cambiar el estado de la marca: {str(e)}", "danger")
+        flash(f"Error al cambiar el estado de la marca en cascada: {str(e)}", "danger")
         
     return redirect(url_for('marcas.listar_marcas'))
 
