@@ -78,7 +78,7 @@ def cambiar_estado_modelo(id_modelo, nuevo_estado):
         
         cursor = mysql.connection.cursor()
         
-        #  CANDADO DE INTEGRIDAD PADRE-HIJO: Si se intenta ACTIVAR el modelo
+        #  CANDADO DE INTEGRIDAD PADRE-HIJO: Si se intenta ACTIVAR el modelo...
         if nuevo_estado == 'Activo':
             query_verificar_marca = """
                 SELECT m.estado AS estado_marca, m.descripcion AS nombre_marca
@@ -89,24 +89,26 @@ def cambiar_estado_modelo(id_modelo, nuevo_estado):
             cursor.execute(query_verificar_marca, (id_modelo,))
             resultado = cursor.fetchone()
             
-            # Controla si el cursor devuelve diccionario o tupla según la configuración de tu proyecto
             estado_marca = resultado['estado_marca'] if isinstance(resultado, dict) else resultado[0]
             nombre_marca = resultado['nombre_marca'] if isinstance(resultado, dict) else resultado[1]
             
-            # Si la marca principal está Inactiva, bloquea la reactivación del hijo de golpe
             if estado_marca == 'Inactivo':
                 cursor.close()
                 flash(f" Operación denegada: No se puede activar este modelo porque su marca principal '{nombre_marca}' se encuentra inactiva.", "danger")
                 return redirect(url_for('modelos.listar_modelos'))
         
-        #  SI EL CANDADO PASÓ EXITOSAMENTE: Procedemos con el cambio normal
+        #  Actualiza el estado del Modelo seleccionado
         cursor.execute("UPDATE modelos SET estado = %s WHERE id_modelo = %s", (nuevo_estado, id_modelo))
+        
+        # . ACTUALIZACIÓN EN CASCADA (NUEVA): Desactiva/Activa todos los vehículos de este modelo específico
+        cursor.execute("UPDATE vehiculos SET estado = %s WHERE id_modelo = %s", (nuevo_estado, id_modelo))
+        
         mysql.connection.commit()
         cursor.close()
-        flash(f"Estado del modelo actualizado a '{nuevo_estado}' con éxito.", "success")
+        flash(f"Estado del modelo y sus vehículos individuales asociados actualizado a '{nuevo_estado}' con éxito.", "success")
         
     except Exception as e:
-        flash(f"Error al cambiar el estado del modelo: {str(e)}", "danger")
+        flash(f"Error al cambiar el estado del modelo en cascada: {str(e)}", "danger")
         
     return redirect(url_for('modelos.listar_modelos'))
 
