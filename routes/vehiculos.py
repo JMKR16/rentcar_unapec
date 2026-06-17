@@ -170,6 +170,39 @@ def cambiar_estado_vehiculo(id_vehiculo, nuevo_estado):
         from app import mysql
         
         cursor = mysql.connection.cursor()
+        
+        #   Candado de si  intentan ACTIVAR el vehículo de forma manual:
+        if nuevo_estado == 'Activo':
+            query_verificar_padres = """
+                SELECT 
+                    m.estado AS estado_marca, m.descripcion AS nombre_marca,
+                    mo.estado AS estado_modelo, mo.descripcion AS nombre_modelo
+                FROM vehiculos v
+                INNER JOIN marcas m ON v.id_marca = m.id_marca
+                INNER JOIN modelos mo ON v.id_modelo = mo.id_modelo
+                WHERE v.id_vehiculo = %s
+            """
+            cursor.execute(query_verificar_padres, (id_vehiculo,))
+            resultado = cursor.fetchone()
+            
+            # Controlamos si el cursor devuelve un diccionario o tupla según la configuración del entorno
+            est_marca = resultado['estado_marca'] if isinstance(resultado, dict) else resultado[0]
+            nom_marca = resultado['nombre_marca'] if isinstance(resultado, dict) else resultado[1]
+            est_modelo = resultado['estado_modelo'] if isinstance(resultado, dict) else resultado[2]
+            nom_modelo = resultado['nombre_modelo'] if isinstance(resultado, dict) else resultado[3]
+            
+            # Si la marca principal o el modelo asignado están inactivos, bloqueamos la reactivación
+            if est_marca == 'Inactivo':
+                cursor.close()
+                flash(f" Operación denegada: No se puede activar este vehículo porque su marca '{nom_marca}' se encuentra inactiva.", "danger")
+                return redirect(url_for('vehiculos.listar_vehiculos'))
+                
+            if est_modelo == 'Inactivo':
+                cursor.close()
+                flash(f" Operación denegada: No se puede activar este vehículo porque su modelo '{nom_modelo}' se encuentra inactivo.", "danger")
+                return redirect(url_for('vehiculos.listar_vehiculos'))
+        
+        #  SI LOS PADRES ESTÁN VIVOS: Procede con la actualización normal del estado
         cursor.execute("UPDATE vehiculos SET estado = %s WHERE id_vehiculo = %s", (nuevo_estado, id_vehiculo))
         mysql.connection.commit()
         cursor.close()
