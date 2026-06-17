@@ -140,7 +140,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label font-weight-bold">Límite de Crédito (RD$)</label>
-                                                <input type="number" step="0.01" name="txt_limite_edit" class="form-control" value="{{ c.limite_credito }}" required>
+                                                <input type="number" step="0.01" min="0" name="txt_limite_edit" class="form-control" value="{{ c.limite_credito }}" required>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label font-weight-bold">Tipo Persona</label>
@@ -188,7 +188,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label font-weight-bold">Límite Crédito (RD$)</label>
-                            <input type="number" step="0.01" name="txt_limite" class="form-control" placeholder="Ej: 50000" required>
+                            <input type="number" step="0.01" min="0" name="txt_limite" class="form-control" placeholder="Ej: 50000" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label font-weight-bold">Tipo Persona</label>

@@ -73,7 +73,7 @@ def guardar_modelo():
 @modelos_bp.route('/cambiar_estado_modelo/<int:id_modelo>/<string:nuevo_estado>')
 def cambiar_estado_modelo(id_modelo, nuevo_estado):
     try:
-        # 🟢Importación local segura
+        # Importación local segura
         from app import mysql
         
         cursor = mysql.connection.cursor()

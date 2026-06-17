@@ -55,7 +55,7 @@ def guardar_tipo_vehiculo():
 @tipos_vehiculos_bp.route('/cambiar_estado_tipo/<int:id_tipo>/<string:nuevo_estado>')
 def cambiar_estado_tipo(id_tipo, nuevo_estado):
     try:
-        # 🟢 Importación local segura
+        #  Importación local segura
         from app import mysql
         
         cursor = mysql.connection.cursor()
@@ -71,7 +71,7 @@ def cambiar_estado_tipo(id_tipo, nuevo_estado):
 
 @tipos_vehiculos_bp.route('/editar_tipo_vehiculo/<int:id_tipo>', methods=['POST'])
 def editar_tipo_vehiculo(id_tipo):
-    # 🟢 Importación local segura
+    # Importación local segura
     from app import mysql
     
     nuevo_nombre = request.form.get('txt_descripcion_edit', '').strip()

@@ -81,7 +81,7 @@ def guardar_renta():
         id_cliente = datos_insp['id_cliente'] if isinstance(datos_insp, dict) else datos_insp[1]
         id_empleado = datos_insp['id_empleado_inspeccion'] if isinstance(datos_insp, dict) else datos_insp[2]
 
-        # 🟢 Nace con fecha_devolucion en NULL/None porque todavía está en uso
+        #  Nace con fecha_devolucion en NULL/None porque todavía está en uso
         query = """
             INSERT INTO rentas (id_vehiculo, id_cliente, id_empleado, id_inspeccion, fecha_renta, fecha_devolucion, monto_x_dia, cantidad_dias, monto_total, estado, comentario)
             VALUES (%s, %s, %s, %s, %s, NULL, %s, 0, 0.00, 'Activo', %s)
@@ -109,7 +109,7 @@ def editar_renta_activa():
 
     try:
         cursor = mysql.connection.cursor()
-        # 🟢 Limpiamos el update quitando la fecha de devolución estipulada
+        #  Limpia el update quitando la fecha de devolución estipulada
         query = """
             UPDATE rentas 
             SET fecha_renta = %s, monto_x_dia = %s, comentario = %s

@@ -37,17 +37,25 @@ def guardar_cliente():
     nombre = request.form.get('txt_nombre', '').strip()
     cedula = request.form.get('txt_cedula', '').strip()
     tarjeta = request.form.get('txt_tarjeta', '').strip()
-    limite = request.form.get('txt_limite', '0').strip()
+    limite_raw = request.form.get('txt_limite', '0').strip()
     tipo_persona = request.form.get('sel_tipo_persona', 'Física')
     estado = request.form.get('sel_estado', 'Activo')
     
-    if not nombre or not cedula or not tarjeta or not limite:
+    if not nombre or not cedula or not tarjeta or not limite_raw:
         flash("Todos los campos obligatorios del cliente deben ser completados.", "warning")
         return redirect(url_for('clientes.listar_clientes'))
         
     if not validar_cedula_dominicana(cedula):
         flash(f"Error: La cédula '{cedula}' no es una cédula válida en República Dominicana.", "danger")
         return redirect(url_for('clientes.listar_clientes'))
+        
+    try:
+        #  Validar que el límite no sea negativo
+        limite = float(limite_raw)
+        if limite < 0:
+            limite = 0.0
+    except ValueError:
+        limite = 0.0
         
     try:
         cursor = mysql.connection.cursor()
@@ -79,16 +87,24 @@ def editar_cliente(id_cliente):
     nombre = request.form.get('txt_nombre_edit', '').strip()
     cedula = request.form.get('txt_cedula_edit', '').strip()
     tarjeta = request.form.get('txt_tarjeta_edit', '').strip()
-    limite = request.form.get('txt_limite_edit', '0').strip()
+    limite_raw = request.form.get('txt_limite_edit', '0').strip()
     tipo_persona = request.form.get('sel_tipo_persona_edit', 'Física')
     
-    if not nombre or not cedula or not tarjeta or not limite:
+    if not nombre or not cedula or not tarjeta or not limite_raw:
         flash("Campos vacíos detectados al intentar actualizar.", "warning")
         return redirect(url_for('clientes.listar_clientes'))
         
     if not validar_cedula_dominicana(cedula):
         flash(f"Error: La cédula '{cedula}' no es una cédula válida.", "danger")
         return redirect(url_for('clientes.listar_clientes'))
+        
+    try:
+        #  BLINDAJE BACKEND: Validar que el límite en la edición no sea negativo
+        limite = float(limite_raw)
+        if limite < 0:
+            limite = 0.0
+    except ValueError:
+        limite = 0.0
         
     try:
         cursor = mysql.connection.cursor()
