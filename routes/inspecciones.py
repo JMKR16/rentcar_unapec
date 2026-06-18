@@ -122,3 +122,35 @@ def cambiar_estado_inspeccion(id_inspeccion, nuevo_estado):
         flash(f"Error al anular la inspección: {str(e)}", "danger")
         
     return redirect(url_for('inspecciones.listar_inspecciones'))
+
+
+#  BORRADO FÍSICO SEGURO DE INSPECCIÓN CON VALIDACIÓN DE CONTRATOS
+@inspecciones_bp.route('/eliminar_inspeccion/<int:id_inspeccion>')
+def eliminar_inspeccion(id_inspeccion):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # Verificamos si esta hoja de inspección ya forma parte de algún contrato de renta
+        cursor.execute("SELECT COUNT(*) FROM rentas WHERE id_inspeccion = %s", (id_inspeccion,))
+        resultado = cursor.fetchone()
+        
+        # Controlamos si devuelve diccionario o tupla según tu configuración
+        en_rentas = resultado['COUNT(*)'] if isinstance(resultado, dict) else resultado[0]
+        
+        # Si ya se usó para rentar un carro, bloqueamos su eliminación para no romper la auditoría
+        if en_rentas > 0:
+            cursor.close()
+            flash(" Operación denegada: No se puede eliminar esta hoja de inspección de forma permanente porque ya se encuentra vinculada a un contrato de renta asentado.", "danger")
+            return redirect(url_for('inspecciones.listar_inspecciones'))
+            
+        # Si nunca se llegó a usar en una renta, procedemos con el borrado físico seguro
+        cursor.execute("DELETE FROM inspecciones WHERE id_inspeccion = %s", (id_inspeccion,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("El registro de inspección ha sido eliminado físicamente del sistema de forma segura.", "success")
+    except Exception as e:
+        flash(f"Error de restricción de integridad al intentar eliminar la inspección: {str(e)}", "danger")
+        
+    return redirect(url_for('inspecciones.listar_inspecciones'))

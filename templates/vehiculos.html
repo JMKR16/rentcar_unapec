@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RentCar - Gestión de Vehículos Oficiales</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-light">
 
@@ -102,23 +103,32 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarVehiculo{{ v.id_vehiculo }}">
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarVehiculo{{ v.id_vehiculo }}" title="Editar Vehículo">
                                         Editar
                                     </button>
 
                                     {% if v.estado == 'Activo' %}
                                         <a href="{{ url_for('vehiculos.cambiar_estado_vehiculo', id_vehiculo=v.id_vehiculo, nuevo_estado='Inactivo') }}" 
                                            class="btn btn-warning"
-                                           onclick="return confirm('¿Seguro que deseas inhabilitar este vehículo?');">
+                                           onclick="return confirm('¿Seguro que deseas inhabilitar este vehículo?');"
+                                           title="Inhabilitar Vehículo">
                                              Inhabilitar
                                         </a>
                                     {% else %}
                                         <a href="{{ url_for('vehiculos.cambiar_estado_vehiculo', id_vehiculo=v.id_vehiculo, nuevo_estado='Activo') }}" 
                                            class="btn btn-success"
-                                           onclick="return confirm('¿Deseas habilitar este vehículo de nuevo?');">
+                                           onclick="return confirm('¿Deseas habilitar este vehículo de nuevo?');"
+                                           title="Habilitar Vehículo">
                                              Habilitar
                                         </a>
                                     {% endif %}
+
+                                    <a href="{{ url_for('vehiculos.eliminar_vehiculo', id_vehiculo=v.id_vehiculo) }}" 
+                                       class="btn btn-danger" 
+                                       onclick="return confirm('⚠️ ¿Está completamente seguro de eliminar permanentemente este vehículo «{{ v.descripcion }}»? Esta acción no se puede deshacer y borrará todo su registro físico del inventario.');"
+                                       title="Eliminar Vehículo de forma permanente">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -310,25 +320,21 @@
             const selectModelo = document.getElementById('sel_modelo');
             const modeloAyuda = document.getElementById('modelo_ayuda');
             
-            // Guarda una copia de todos los modelos originales del catálogo
             const todosLosModelos = Array.from(selectModelo.options);
 
             selectMarca.addEventListener('change', function() {
                 const idMarcaSeleccionada = this.value;
                 
-                // Limpia el selector de modelos y lo habilita
                 selectModelo.innerHTML = '<option value="" disabled selected>-- Selecciona Modelo --</option>';
                 selectModelo.disabled = false;
                 modeloAyuda.textContent = "Mostrando modelos de la marca seleccionada.";
 
-                // Filtra e inserta solo los modelos que coinciden con la marca padre
                 todosLosModelos.forEach(opcion => {
                     if (opcion.getAttribute('data-marca') === idMarcaSeleccionada) {
                         selectModelo.appendChild(opcion.cloneNode(true));
                     }
                 });
                 
-                // Si la marca no tiene modelos registrados todavía
                 if (selectModelo.options.length === 1) {
                     selectModelo.innerHTML = '<option value="" disabled selected>-- No hay modelos para esta marca --</option>';
                     selectModelo.disabled = true;

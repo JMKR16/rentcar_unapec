@@ -63,7 +63,7 @@ def guardar_modelo():
         cursor.execute("INSERT INTO modelos (id_marca, descripcion, estado) VALUES (%s, %s, %s)", (id_marca, nombre_modelo, estado))
         mysql.connection.commit()
         cursor.close()
-        flash(f"Modelo '{nombre_modelo}' registrado con éxito.", "success")
+        flash(f"Modelo '{nombre_modelo}' registered con éxito.", "success")
     except Exception as e:
         flash(f"Error al guardar modelo: {str(e)}", "danger")
         
@@ -130,5 +130,45 @@ def editar_modelo(id_modelo):
         flash("Modelo renombrado exitosamente.", "success")
     except Exception as e:
         flash(f"Error al actualizar el modelo: {str(e)}", "danger")
+        
+    return redirect(url_for('modelos.listar_modelos'))
+
+
+#  BORRADO FÍSICO SEGURO DE MODELO CON CANDADO DE USO TOTAL
+@modelos_bp.route('/eliminar_modelo/<int:id_modelo>')
+def eliminar_modelo(id_modelo):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # ESCANEO TOTAL: Validamos si el modelo se usa en vehículos, rentas o inspecciones
+        query_verificar_uso = """
+            SELECT 
+                (SELECT COUNT(*) FROM vehiculos WHERE id_modelo = %s) AS en_vehiculos,
+                (SELECT COUNT(*) FROM rentas r JOIN vehiculos v ON r.id_vehiculo = v.id_vehiculo WHERE v.id_modelo = %s) AS en_rentas,
+                (SELECT COUNT(*) FROM inspecciones i JOIN vehiculos v ON i.id_vehiculo = v.id_vehiculo WHERE v.id_modelo = %s) AS en_inspecciones
+        """
+        cursor.execute(query_verificar_uso, (id_modelo, id_modelo, id_modelo))
+        resultado = cursor.fetchone()
+        
+        # Controlamos la extracción de datos por diccionario o tupla según tu entorno
+        veh = resultado['en_vehiculos'] if isinstance(resultado, dict) else resultado[0]
+        ren = resultado['en_rentas'] if isinstance(resultado, dict) else resultado[1]
+        insp = resultado['en_inspecciones'] if isinstance(resultado, dict) else resultado[2]
+        
+        # Si tiene cualquier tipo de dependencia transaccional, bloqueamos la acción física
+        if veh > 0 or ren > 0 or insp > 0:
+            cursor.close()
+            flash(" Operación denegada: No se puede eliminar este modelo permanentemente porque posee unidades registradas en el inventario o historial operativo.", "danger")
+            return redirect(url_for('modelos.listar_modelos'))
+            
+        # Si el conteo es 0 absoluto, procedemos a borrar físicamente de forma segura
+        cursor.execute("DELETE FROM modelos WHERE id_modelo = %s", (id_modelo,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("El modelo ha sido eliminado físicamente del catálogo con éxito.", "success")
+    except Exception as e:
+        flash(f"Error de restricción de integridad al intentar eliminar el modelo: {str(e)}", "danger")
         
     return redirect(url_for('modelos.listar_modelos'))

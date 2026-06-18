@@ -94,7 +94,7 @@ def cambiar_estado_marca(id_marca, nuevo_estado):
         flash(f"Estado de la marca, sus modelos y todos sus vehículos asociados actualizado a '{nuevo_estado}' con éxito.", "success")
         
     except Exception as e:
-        flash(f"Error al cambiar el estado de la marca en cascada total: {str(e)}", "danger")
+        flash(f"Error al cambiar el estado del marca en cascada total: {str(e)}", "danger")
         
     return redirect(url_for('marcas.listar_marcas'))
 
@@ -123,5 +123,48 @@ def editar_marca(id_marca):
         flash("Marca renombrada exitosamente.", "success")
     except Exception as e:
         flash(f"Error al actualizar el nombre de la marca: {str(e)}", "danger")
+        
+    return redirect(url_for('marcas.listar_marcas'))
+
+
+#  BORRADO FÍSICO SEGURO CON VERIFICACIÓN RELACIONAL
+@marcas_bp.route('/eliminar_marca/<int:id_marca>')
+def eliminar_marca(id_marca):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # Triple candado:  Revisa si la marca existe en CUALQUIER flujo del sistema
+        query_verificar_uso_total = """
+            SELECT 
+                (SELECT COUNT(*) FROM modelos WHERE id_marca = %s) AS en_modelos,
+                (SELECT COUNT(*) FROM vehiculos WHERE id_marca = %s) AS en_vehiculos,
+                (SELECT COUNT(*) FROM rentas r JOIN vehiculos v ON r.id_vehiculo = v.id_vehiculo WHERE v.id_marca = %s) AS en_rentas,
+                (SELECT COUNT(*) FROM inspecciones i JOIN vehiculos v ON i.id_vehiculo = v.id_vehiculo WHERE v.id_marca = %s) AS en_inspecciones
+        """
+        # Pasamos el id_marca 4 veces para rellenar cada sub-consulta
+        cursor.execute(query_verificar_uso_total, (id_marca, id_marca, id_marca, id_marca))
+        resultado = cursor.fetchone()
+        
+        # Controlamos si devuelve diccionario o tupla según tu configuración
+        mod = resultado['en_modelos'] if isinstance(resultado, dict) else resultado[0]
+        veh = resultado['en_vehiculos'] if isinstance(resultado, dict) else resultado[1]
+        ren = resultado['en_rentas'] if isinstance(resultado, dict) else resultado[2]
+        insp = resultado['en_inspecciones'] if isinstance(resultado, dict) else resultado[3]
+        
+        # Si está metida en cualquier parte del sistema, congelamos el borrado físico de inmediato
+        if mod > 0 or veh > 0 or ren > 0 or insp > 0:
+            cursor.close()
+            flash("🚫 Operación denegada: No se puede eliminar esta marca permanentemente porque cuenta con registros asociados en modelos, vehículos, inspecciones o contratos de renta.", "danger")
+            return redirect(url_for('marcas.listar_marcas'))
+            
+        # Si el conteo total da 0 absoluto, la marca está completamente huérfana y es segura de borrar
+        cursor.execute("DELETE FROM marcas WHERE id_marca = %s", (id_marca,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("La marca ha sido eliminada físicamente del sistema de manera segura.", "success")
+    except Exception as e:
+        flash(f"Error de restricción de integridad al intentar eliminar la marca: {str(e)}", "danger")
         
     return redirect(url_for('marcas.listar_marcas'))

@@ -211,3 +211,41 @@ def cambiar_estado_vehiculo(id_vehiculo, nuevo_estado):
         flash(f"Error al cambiar el estado del vehículo: {str(e)}", "danger")
         
     return redirect(url_for('vehiculos.listar_vehiculos'))
+
+
+#  BORRADO FÍSICO SEGURO CON VERIFICACIÓN EN HISTORIAL OPERATIVO
+@vehiculos_bp.route('/eliminar_vehiculo/<int:id_vehiculo>')
+def eliminar_vehiculo(id_vehiculo):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # ESCANEO OPERATIVO: Verificamos si este auto cuenta con rentas o hojas de inspección hechas
+        query_verificar_historial = """
+            SELECT 
+                (SELECT COUNT(*) FROM rentas WHERE id_vehiculo = %s) AS en_rentas,
+                (SELECT COUNT(*) FROM inspecciones WHERE id_vehiculo = %s) AS en_inspecciones
+        """
+        cursor.execute(query_verificar_historial, (id_vehiculo, id_vehiculo))
+        resultado = cursor.fetchone()
+        
+        # Controlamos si devuelve diccionario o tupla
+        ren = resultado['en_rentas'] if isinstance(resultado, dict) else resultado[0]
+        insp = resultado['en_inspecciones'] if isinstance(resultado, dict) else resultado[1]
+        
+        # Si tiene un historial operativo detrás, bloqueamos el borrado físico inmediatamente
+        if ren > 0 or insp > 0:
+            cursor.close()
+            flash("Operación denegada: No se puede eliminar este vehículo permanentemente porque posee un historial de transacciones registrado (hojas de inspección o contratos de renta).", "danger")
+            return redirect(url_for('vehiculos.listar_vehiculos'))
+            
+        # Si está completamente libre de dependencias, procedemos a borrar de la base de datos
+        cursor.execute("DELETE FROM vehiculos WHERE id_vehiculo = %s", (id_vehiculo,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("El vehículo ha sido removido físicamente del inventario con éxito.", "success")
+    except Exception as e:
+        flash(f"Error de restricción al intentar eliminar el vehículo: {str(e)}", "danger")
+        
+    return redirect(url_for('vehiculos.listar_vehiculos'))
