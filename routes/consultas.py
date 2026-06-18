@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from datetime import datetime
 import io
 
-#  Blueprint  para Consultas Dinámicas
+# Blueprint para Consultas Dinámicas
 consultas_bp = Blueprint('consultas', __name__)
 
 def generar_reporte_pdf(resultados):
@@ -107,17 +107,22 @@ def filtrar_rentas():
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        #  selector de vehículos
+        # Selector de vehículos
         cursor.execute("SELECT id_vehiculo, CONCAT(no_placa, ' - ', descripcion) AS descripcion FROM vehiculos")
         vehiculos_list = cursor.fetchall()
         
-        #  Capturalos filtros por POST o GET de manera unificada
+        # Captura los filtros de manera unificada
         filtro_vehiculo = request.values.get('sel_vehiculo', '')
         fecha_desde = request.values.get('txt_fecha_desde', '')
         fecha_hasta = request.values.get('txt_fecha_hasta', '')
         filtro_estado = request.values.get('sel_estado', '')
         
-        #  Query base relacional de siempre
+        # CANDADO CRONOLÓGICO FRONT/BACK
+        if fecha_desde and fecha_hasta and fecha_hasta < fecha_desde:
+            flash("⚠️ La fecha final no puede ser anterior a la inicial. Rango ajustado automáticamente.", "warning")
+            fecha_hasta = fecha_desde
+
+        # Query base relacional
         query = """
             SELECT r.no_renta AS no_renta, 
                    CONCAT(v.no_placa, ' - ', m.descripcion, ' ', md.descripcion) AS vehiculo, 
@@ -142,12 +147,17 @@ def filtrar_rentas():
         if filtro_vehiculo:
             query += " AND r.id_vehiculo = %s"
             params.append(filtro_vehiculo)
+            
+        #  Filtro de Periodo Estricto
         if fecha_desde:
-            query += " AND r.fecha_renta >= %s"
+            # La renta debe haber iniciado de la fecha 'desde' en adelante
+            query += " AND DATE(r.fecha_renta) >= %s"
             params.append(fecha_desde)
         if fecha_hasta:
-            query += " AND r.fecha_renta <= %s"
+            # Obliga a que la fecha de DEVOLUCIÓN NO supere el límite 'hasta'
+            query += " AND DATE(r.fecha_devolucion) <= %s"
             params.append(fecha_hasta)
+            
         if filtro_estado:
             query += " AND r.estado = %s"
             params.append(filtro_estado)
@@ -158,11 +168,11 @@ def filtrar_rentas():
         resultados = cursor.fetchall()
         cursor.close()
         
-        #  Si  Pulsa el botón de exportar PDF: 
+        # Si Pulsa el botón de exportar PDF: 
         if request.method == 'POST' and request.form.get('btn_accion') == 'pdf':
             return generar_reporte_pdf(resultados)
             
-        # Si no pulsó PDF (o entró por GET), procesa  la pantalla normal
+        # Si no pulsó PDF, procesa la pantalla normal
         total_rentas_filtradas = len(resultados)
         suma_montos_acumulados = 0.0
         for r in resultados:
