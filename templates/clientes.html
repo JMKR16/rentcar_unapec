@@ -67,7 +67,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Nombre Completo</th>
-                            <th>Cédula</th>
+                            <th>Documento (Cédula/RNC)</th>
                             <th>No. Tarjeta CR</th>
                             <th>Límite de Crédito</th>
                             <th>Tipo Persona</th>
@@ -127,7 +127,7 @@
                             </td>
                         </tr>
 
-                        <div class="modal fade" id="modalEditarCliente{{ c.id_cliente }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal fade modal-editar-cliente" id="modalEditarCliente{{ c.id_cliente }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog text-start">
                                 <div class="modal-content">
                                     <div class="modal-header bg-dark text-white">
@@ -141,8 +141,8 @@
                                                 <input type="text" name="txt_nombre_edit" class="form-control" value="{{ c.nombre }}" required>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label font-weight-bold">Cédula</label>
-                                                <input type="text" name="txt_cedula_edit" class="form-control" value="{{ c.cedula }}" required>
+                                                <label class="form-label font-weight-bold label-documento-edit">Cédula</label>
+                                                <input type="text" name="txt_cedula_edit" class="form-control input-documento-edit" value="{{ c.cedula }}" required>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label font-weight-bold">No. Tarjeta CR</label>
@@ -154,7 +154,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label font-weight-bold">Tipo Persona</label>
-                                                <select name="sel_tipo_persona_edit" class="form-select">
+                                                <select name="sel_tipo_persona_edit" class="form-select select-tipo-edit">
                                                     <option value="Física" {% if c.tipo_persona == 'Física' %}selected{% endif %}>Física</option>
                                                     <option value="Jurídica" {% if c.tipo_persona == 'Jurídica' %}selected{% endif %}>Jurídica</option>
                                                 </select>
@@ -189,8 +189,8 @@
                             <input type="text" name="txt_nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label font-weight-bold">Cédula</label>
-                            <input type="text" name="txt_cedula" class="form-control" placeholder="001-0000000-0" required>
+                            <label class="form-label font-weight-bold" id="label-documento-agregar">Cédula</label>
+                            <input type="text" name="txt_cedula" id="input-documento-agregar" class="form-control" placeholder="001-0000000-0" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label font-weight-bold">No. Tarjeta CR</label>
@@ -202,8 +202,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label font-weight-bold">Tipo Persona</label>
-                            <select name="sel_tipo_persona" class="form-select">
-                                <option value="Física">Física</option>
+                            <select name="sel_tipo_persona" id="select-tipo-agregar" class="form-select">
+                                <option value="Física" selected>Física</option>
                                 <option value="Jurídica">Jurídica</option>
                             </select>
                         </div>
@@ -225,5 +225,50 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. CONTROL PARA EL MODAL DE REGISTRAR NUEVO CLIENTE
+            const selectAgregar = document.getElementById('select-tipo-agregar');
+            const labelAgregar = document.getElementById('label-documento-agregar');
+            const inputAgregar = document.getElementById('input-documento-agregar');
+
+            if (selectAgregar) {
+                selectAgregar.addEventListener('change', function() {
+                    if (this.value === 'Jurídica') {
+                        labelAgregar.textContent = 'RNC *';
+                        inputAgregar.placeholder = 'Ej: 101000000';
+                    } else {
+                        labelAgregar.textContent = 'Cédula *';
+                        inputAgregar.placeholder = '001-0000000-0';
+                    }
+                });
+            }
+
+            // 2. CONTROL PARA LOS MODALES DE EDICIÓN DINÁMICOS
+            const modalesEditar = document.querySelectorAll('.modal-editar-cliente');
+            modalesEditar.forEach(modal => {
+                const selectEdit = modal.querySelector('.select-tipo-edit');
+                const labelEdit = modal.querySelector('.label-documento-edit');
+                const inputEdit = modal.querySelector('.input-documento-edit');
+
+                // Ejecución inicial por si el cliente ya es Jurídico al cargar la pantalla
+                if (selectEdit.value === 'Jurídica') {
+                    labelEdit.textContent = 'RNC *';
+                }
+
+                selectEdit.addEventListener('change', function() {
+                    if (this.value === 'Jurídica') {
+                        labelEdit.textContent = 'RNC *';
+                        inputEdit.placeholder = 'Ej: 101000000';
+                    } else {
+                        labelEdit.textContent = 'Cédula *';
+                        inputEdit.placeholder = '001-0000000-0';
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

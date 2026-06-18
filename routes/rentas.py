@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from datetime import datetime
 
-# 🔌 Blueprint para Rentas
+#  Blueprint para Rentas
 rentas_bp = Blueprint('rentas', __name__)
 
 @rentas_bp.route('/rentas')
@@ -28,8 +28,9 @@ def listar_rentas():
         cursor.execute(query)
         rentas = cursor.fetchall()
 
+        # Obtiene la fecha de la inspección para mandársela al select en un atributo data-fecha
         query_inspecciones = """
-            SELECT i.id_inspeccion, 
+            SELECT i.id_inspeccion, i.fecha,
                    CONCAT('Insp #', i.id_inspeccion, ' - ', v.no_placa, ' (', c.nombre, ')') AS descripcion
             FROM inspecciones i
             JOIN vehiculos v ON i.id_vehiculo = v.id_vehiculo
@@ -69,7 +70,8 @@ def guardar_renta():
     try:
         cursor = mysql.connection.cursor()
 
-        cursor.execute("SELECT id_vehiculo, id_cliente, id_empleado_inspeccion FROM inspecciones WHERE id_inspeccion = %s", (id_inspeccion,))
+        # TRAE LA FECHA DE LA INSPECCIÓN ADEMÁS DE LOS IDS
+        cursor.execute("SELECT id_vehiculo, id_cliente, id_empleado_inspeccion, fecha FROM inspecciones WHERE id_inspeccion = %s", (id_inspeccion,))
         datos_insp = cursor.fetchone()
 
         if not datos_insp:
@@ -80,6 +82,30 @@ def guardar_renta():
         id_vehiculo = datos_insp['id_vehiculo'] if isinstance(datos_insp, dict) else datos_insp[0]
         id_cliente = datos_insp['id_cliente'] if isinstance(datos_insp, dict) else datos_insp[1]
         id_empleado = datos_insp['id_empleado_inspeccion'] if isinstance(datos_insp, dict) else datos_insp[2]
+        f_inspeccion_origen = datos_insp['fecha'] if isinstance(datos_insp, dict) else datos_insp[3]
+
+        # Conversión de strings a objetos date para validaciones de integridad temporal
+        f_renta = datetime.strptime(fecha_renta_str, '%Y-%m-%d').date()
+        fecha_hoy = datetime.now().date()
+        
+        if isinstance(f_inspeccion_origen, str):
+            f_inspeccion = datetime.strptime(f_inspeccion_origen, '%Y-%m-%d').date()
+        elif isinstance(f_inspeccion_origen, datetime):
+            f_inspeccion = f_inspeccion_origen.date()
+        else:
+            f_inspeccion = f_inspeccion_origen
+
+        #  Primer candado: Evita rentas con fechas de inicio futuras
+        if f_renta > fecha_hoy:
+            flash("Operación inválida: No se pueden registrar contratos de renta con fechas futuras.", "danger")
+            cursor.close()
+            return redirect(url_for('rentas.listar_rentas'))
+
+        #  Segundo candado: Evita rentas con fechas de inicio anteriores a su inspección
+        if f_renta < f_inspeccion:
+            flash(f" Incoherencia cronológica: La fecha de la renta ({f_renta.strftime('%d/%m/%Y')}) no puede ser anterior a la fecha de la inspección realizada ({f_inspeccion.strftime('%d/%m/%Y')}).", "danger")
+            cursor.close()
+            return redirect(url_for('rentas.listar_rentas'))
 
         # 1. Guarda el contrato de renta
         query = """
@@ -88,7 +114,7 @@ def guardar_renta():
         """
         cursor.execute(query, (id_vehiculo, id_cliente, id_empleado, id_inspeccion, fecha_renta_str, monto_x_dia, comentario))
         
-        # 🟢 2. ACTUALIZACIÓN EN CASCADA: Inactiva automáticamente la hoja de inspección usada
+        # 2. Marca la inspección como inactiva para que no pueda ser reutilizada
         cursor.execute("UPDATE inspecciones SET estado = 'Inactivo' WHERE id_inspeccion = %s", (id_inspeccion,))
         
         mysql.connection.commit()
@@ -113,6 +139,38 @@ def editar_renta_activa():
 
     try:
         cursor = mysql.connection.cursor()
+        
+        # Obtenemos la fecha de la inspección original ligada a esta renta para mantener la coherencia al editar
+        cursor.execute("""
+            SELECT i.fecha 
+            FROM rentas r 
+            JOIN inspecciones i ON r.id_inspeccion = i.id_inspeccion 
+            WHERE r.no_renta = %s
+        """, (no_renta,))
+        renta_data = cursor.fetchone()
+        
+        if renta_data:
+            f_inspeccion_origen = renta_data['fecha'] if isinstance(renta_data, dict) else renta_data[0]
+            f_renta = datetime.strptime(fecha_renta_str, '%Y-%m-%d').date()
+            fecha_hoy = datetime.now().date()
+            
+            if isinstance(f_inspeccion_origen, str):
+                f_inspeccion = datetime.strptime(f_inspeccion_origen, '%Y-%m-%d').date()
+            elif isinstance(f_inspeccion_origen, datetime):
+                f_inspeccion = f_inspeccion_origen.date()
+            else:
+                f_inspeccion = f_inspeccion_origen
+
+            if f_renta > fecha_hoy:
+                flash(" Operación inválida: No se permite cambiar la renta a fechas futuras.", "danger")
+                cursor.close()
+                return redirect(url_for('rentas.listar_rentas'))
+
+            if f_renta < f_inspeccion:
+                flash(f"Error cronológico: La nueva fecha de renta no puede ser anterior a la de su inspección ({f_inspeccion.strftime('%d/%m/%Y')}).", "danger")
+                cursor.close()
+                return redirect(url_for('rentas.listar_rentas'))
+
         query = """
             UPDATE rentas 
             SET fecha_renta = %s, monto_x_dia = %s, comentario = %s
@@ -150,6 +208,13 @@ def marcar_devolucion():
         monto_diario = float(renta['monto_x_dia'] if isinstance(renta, dict) else renta[1])
 
         f_dev = datetime.strptime(fecha_devolucion_str, '%Y-%m-%d').date()
+        fecha_hoy = datetime.now().date()
+        
+        if f_dev > fecha_hoy:
+            flash(" Operación inválida: No se puede asentar una devolución con fecha futura.", "danger")
+            cursor.close()
+            return redirect(url_for('rentas.listar_rentas'))
+
         if isinstance(f_renta_origen, str):
             f_renta = datetime.strptime(f_renta_origen, '%Y-%m-%d').date()
         elif isinstance(f_renta_origen, datetime):

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from datetime import datetime
 
-#  Blueprint para Inspecciones
+# Blueprint para Inspecciones
 inspecciones_bp = Blueprint('inspecciones', __name__)
 
 @inspecciones_bp.route('/inspecciones')
@@ -9,7 +10,7 @@ def listar_inspecciones():
         flash("Acceso denegado. Por favor, inicie sesión primero.", "danger")
         return redirect(url_for('login'))
     try:
-        #  Importación local segura
+        # Importación local segura
         from app import mysql
         
         filtro = request.args.get('ver', 'activos')
@@ -62,7 +63,7 @@ def listar_inspecciones():
 
 @inspecciones_bp.route('/guardar_inspeccion', methods=['POST'])
 def guardar_inspeccion():
-    #  Importación local segura
+    # Importación local segura
     from app import mysql
     
     id_vehiculo = request.form.get('sel_vehiculo')
@@ -85,6 +86,17 @@ def guardar_inspeccion():
     
     if not id_vehiculo or not id_cliente or not id_empleado or not fecha or not cantidad_combustible:
         flash("Todos los selectores y la fecha son obligatorios.", "warning")
+        return redirect(url_for('inspecciones.listar_inspecciones'))
+        
+    #  Candado cronológico: No se permiten fechas futuras en las inspecciones
+    try:
+        fecha_inspeccion = datetime.strptime(fecha, '%Y-%m-%d').date()
+        fecha_hoy = datetime.now().date()
+        if fecha_inspeccion > fecha_hoy:
+            flash(" Operación inválida: No se pueden registrar inspecciones con fechas futuras.", "danger")
+            return redirect(url_for('inspecciones.listar_inspecciones'))
+    except ValueError:
+        flash("Formato de fecha inválido.", "danger")
         return redirect(url_for('inspecciones.listar_inspecciones'))
         
     try:
@@ -124,7 +136,7 @@ def cambiar_estado_inspeccion(id_inspeccion, nuevo_estado):
     return redirect(url_for('inspecciones.listar_inspecciones'))
 
 
-#  BORRADO FÍSICO SEGURO DE INSPECCIÓN CON VALIDACIÓN DE CONTRATOS
+# BORRADO FÍSICO SEGURO DE INSPECCIÓN CON VALIDACIÓN DE CONTRATOS
 @inspecciones_bp.route('/eliminar_inspeccion/<int:id_inspeccion>')
 def eliminar_inspeccion(id_inspeccion):
     try:
@@ -141,7 +153,7 @@ def eliminar_inspeccion(id_inspeccion):
         # Si ya se usó para rentar un carro, bloqueamos su eliminación para no romper la auditoría
         if en_rentas > 0:
             cursor.close()
-            flash(" Operación denegada: No se puede eliminar esta hoja de inspección de forma permanente porque ya se encuentra vinculada a un contrato de renta asentado.", "danger")
+            flash("Operación denegada: No se puede eliminar esta hoja de inspección de forma permanente porque ya se encuentra vinculada a un contrato de renta asentado.", "danger")
             return redirect(url_for('inspecciones.listar_inspecciones'))
             
         # Si nunca se llegó a usar en una renta, procedemos con el borrado físico seguro

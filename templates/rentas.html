@@ -148,10 +148,10 @@
                     <div class="modal-body p-4 row g-3">
                         <div class="col-12">
                             <label class="form-label small fw-bold text-secondary">Inspección Autorizada *</label>
-                            <select name="sel_inspeccion" class="form-select" required>
+                            <select name="sel_inspeccion" id="sel_inspeccion_nueva" class="form-select" required>
                                 <option value="" disabled selected>Seleccione la inspección previa...</option>
                                 {% for i in lista_inspecciones %}
-                                <option value="{{ i['id_inspeccion'] }}">{{ i['descripcion'] }}</option>
+                                <option value="{{ i['id_inspeccion'] }}" data-fecha="{{ i['fecha'] }}">{{ i['descripcion'] }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -181,7 +181,7 @@
         <div class="modal-dialog modal-dialog-centered modal-md">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-secondary text-white">
-                    <h5 class="modal-title fw-bold">📝 Corregir Parámetros del Contrato</h5>
+                    <h5 class="modal-title fw-bold"> Corregir Parámetros del Contrato</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ url_for('rentas.editar_renta_activa') }}" method="POST">
@@ -244,32 +244,45 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
-            // ==========================================
-            // 🟢 RESTRICCIÓN: FECHA MÍNIMA ACTUAL PARA NUEVA RENTA
-            // ==========================================
+            // Calcula la fecha actual (hoy) en formato local YYYY-MM-DD
+            const hoy = new Date().toISOString().split('T')[0];
+            
+            // Bloquea estrictamente que se elijan fechas futuras en cualquier módulo
             const inputRentaNueva = document.getElementById('crear_txt_fecha_renta');
+            const inputFechaDevolucion = document.getElementById('dev_txt_fecha_real');
+            const inputFechaEditar = document.getElementById('edit_txt_fecha_renta');
             
-            // Obtenemos la fecha de hoy tomando en cuenta la zona horaria local
-            const hoy = new Date();
-            const yyyy = hoy.getFullYear();
-            const mm = String(hoy.getMonth() + 1).padStart(2, '0'); // Los meses van de 0 a 11
-            const dd = String(hoy.getDate()).padStart(2, '0');
-            
-            const fechaActualFormateada = `${yyyy}-${mm}-${dd}`;
-            
-            // Bloqueamos el calendario de nueva renta para que no acepte días anteriores a hoy
-            if (inputRentaNueva) {
-                inputRentaNueva.min = fechaActualFormateada;
+            if (inputRentaNueva) inputRentaNueva.max = hoy;
+            if (inputFechaDevolucion) inputFechaDevolucion.max = hoy;
+            if (inputFechaEditar) inputFechaEditar.max = hoy;
+
+            // Escuchador dinámico para sincronizar el mínimo de la Renta con el día de la Inspección
+            const selectInspeccion = document.getElementById('sel_inspeccion_nueva');
+            if (selectInspeccion && inputRentaNueva) {
+                selectInspeccion.addEventListener('change', function() {
+                    const opcionSeleccionada = this.options[this.selectedIndex];
+                    const fechaInspeccion = opcionSeleccionada.getAttribute('data-fecha');
+                    
+                    if (fechaInspeccion) {
+                        // El límite inferior permitido pasa a ser la fecha en que se evaluó el carro
+                        inputRentaNueva.min = fechaInspeccion;
+                        
+                        // Si el usuario ya tenía una fecha menor puesta por error, limpiamos el campo
+                        if (inputRentaNueva.value && inputRentaNueva.value < fechaInspeccion) {
+                            inputRentaNueva.value = '';
+                        }
+                    } else {
+                        inputRentaNueva.removeAttribute('min');
+                    }
+                });
             }
 
             // ==========================================
             // INYECCIÓN DINÁMICA DE DATOS A MODALES
             // ==========================================
             
-            // 1. Modal Devolver Verde (Restricción basada en la fecha de salida)
+            // 1. Modal Devolver Verde (Ajusta el min según el origen de la renta)
             const botonesCambiar = document.querySelectorAll('.btn-cambiar-estado');
-            const inputFechaDevolucion = document.getElementById('dev_txt_fecha_real');
-
             botonesCambiar.forEach(boton => {
                 boton.addEventListener('click', function() {
                     document.getElementById('id_renta_cambio').value = this.getAttribute('data-id');

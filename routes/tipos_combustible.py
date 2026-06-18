@@ -97,20 +97,20 @@ def eliminar_combustible(id_combustible):
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        # CANDADO RELACIONAL: Contamos cuántos vehículos usan este tipo de combustible
+        #  Cuenta cuántos vehículos usan este tipo de combustible
         cursor.execute("SELECT COUNT(*) FROM vehiculos WHERE id_combustible = %s", (id_combustible,))
         resultado = cursor.fetchone()
         
-        # Controlamos diccionario o tupla según tu entorno de ejecución
+        # Controla diccionario o tupla según tu entorno de ejecución
         cantidad_vehiculos = resultado['COUNT(*)'] if isinstance(resultado, dict) else resultado[0]
         
-        # Si hay carros usándolo, bloqueamos la eliminación física de golpe
+        # Si hay carros usándolo, bloquea la eliminación física de golpe
         if cantidad_vehiculos > 0:
             cursor.close()
             flash(" Operación denegada: No se puede eliminar este tipo de combustible porque existen vehículos en el inventario registrados bajo esta especificación.", "danger")
             return redirect(url_for('tipos_combustible.listar_combustibles'))
             
-        # Si está libre de dependencias operativas, lo borramos de manera definitiva
+        # Si está libre de dependencias operativas, lo borra de manera definitiva
         cursor.execute("DELETE FROM tipos_combustible WHERE id_combustible = %s", (id_combustible,))
         mysql.connection.commit()
         cursor.close()
