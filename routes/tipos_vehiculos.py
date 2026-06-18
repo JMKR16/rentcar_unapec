@@ -89,3 +89,35 @@ def editar_tipo_vehiculo(id_tipo):
         flash(f"Error al actualizar el tipo de vehículo: {str(e)}", "danger")
         
     return redirect(url_for('tipos_vehiculos.listar_tipos_vehiculos'))
+
+
+#  BORRADO FÍSICO SEGURO DE CATEGORÍA CON CANDADO RELACIONAL
+@tipos_vehiculos_bp.route('/eliminar_tipo_vehiculo/<int:id_tipo>')
+def eliminar_tipo_vehiculo(id_tipo):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # CANDADO RELACIONAL: Cuenta cuántos vehículos pertenecen actualmente a esta categoría
+        cursor.execute("SELECT COUNT(*) FROM vehiculos WHERE id_tipo_vehiculo = %s", (id_tipo,))
+        resultado = cursor.fetchone()
+        
+        # Controla diccionario o tupla según la configuración
+        cantidad_vehiculos = resultado['COUNT(*)'] if isinstance(resultado, dict) else resultado[0]
+        
+        # Si la categoría tiene vehículos asignados, bloquea la acción física inmediatamente
+        if cantidad_vehiculos > 0:
+            cursor.close()
+            flash(" Operación denegada: No se puede eliminar esta categoría permanentemente porque existen vehículos en el inventario registrados bajo este tipo.", "danger")
+            return redirect(url_for('tipos_vehiculos.listar_tipos_vehiculos'))
+            
+        # Si está completamente limpio, procede a borrarlo físicamente
+        cursor.execute("DELETE FROM tipos_vehiculos WHERE id_tipo_vehiculo = %s", (id_tipo,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("La categoría de vehículo ha sido eliminada físicamente de la base de datos con éxito.", "success")
+    except Exception as e:
+        flash(f"Error de restricción al intentar eliminar la categoría: {str(e)}", "danger")
+        
+    return redirect(url_for('tipos_vehiculos.listar_tipos_vehiculos'))

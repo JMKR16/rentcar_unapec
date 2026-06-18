@@ -144,3 +144,41 @@ def cambiar_estado_cliente(id_cliente, nuevo_estado):
         flash(f"Error al alternar estado del cliente: {str(e)}", "danger")
         
     return redirect(url_for('clientes.listar_clientes'))
+
+
+#  BORRADO FÍSICO SEGURO CON COMPROBACIÓN HISTÓRICA COMPLETA
+@clientes_bp.route('/eliminar_cliente/<int:id_cliente>')
+def eliminar_cliente(id_cliente):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # ESCANEO TOTAL: Buscamos si el cliente cuenta con rentas o inspecciones asentadas
+        query_verificar = """
+            SELECT 
+                (SELECT COUNT(*) FROM rentas WHERE id_cliente = %s) AS en_rentas,
+                (SELECT COUNT(*) FROM inspecciones WHERE id_cliente = %s) AS en_inspecciones
+        """
+        cursor.execute(query_verificar, (id_cliente, id_cliente))
+        resultado = cursor.fetchone()
+        
+        # Soporta extracción de datos tanto para estructuras de diccionarios como de tuplas
+        ren = resultado['en_rentas'] if isinstance(resultado, dict) else resultado[0]
+        insp = resultado['en_inspecciones'] if isinstance(resultado, dict) else resultado[1]
+        
+        # Si tiene cualquier tipo de participación transaccional, bloquea la destrucción física
+        if ren > 0 or insp > 0:
+            cursor.close()
+            flash(" Operación denegada: No se puede eliminar este cliente permanentemente porque posee un historial de transacciones registrado (hojas de inspección o contratos de renta).", "danger")
+            return redirect(url_for('clientes.listar_clientes'))
+            
+        # Si no tiene ningún tipo de amarre con las tablas hijas, procede  al borrado físico definitivo
+        cursor.execute("DELETE FROM clientes WHERE id_cliente = %s", (id_cliente,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("El registro del cliente ha sido removido físicamente del sistema de manera exitosa y segura.", "success")
+    except Exception as e:
+        flash(f"Error técnico de integridad al intentar eliminar al cliente: {str(e)}", "danger")
+        
+    return redirect(url_for('clientes.listar_clientes'))

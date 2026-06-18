@@ -88,3 +88,35 @@ def editar_combustible(id_combustible):
         flash(f"Error al actualizar el tipo de combustible: {str(e)}", "danger")
         
     return redirect(url_for('tipos_combustible.listar_combustibles'))
+
+
+#  BORRADO FÍSICO SEGURO DE COMBUSTIBLE CON CANDADO RELACIONAL
+@tipos_combustible_bp.route('/eliminar_combustible/<int:id_combustible>')
+def eliminar_combustible(id_combustible):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # CANDADO RELACIONAL: Contamos cuántos vehículos usan este tipo de combustible
+        cursor.execute("SELECT COUNT(*) FROM vehiculos WHERE id_combustible = %s", (id_combustible,))
+        resultado = cursor.fetchone()
+        
+        # Controlamos diccionario o tupla según tu entorno de ejecución
+        cantidad_vehiculos = resultado['COUNT(*)'] if isinstance(resultado, dict) else resultado[0]
+        
+        # Si hay carros usándolo, bloqueamos la eliminación física de golpe
+        if cantidad_vehiculos > 0:
+            cursor.close()
+            flash(" Operación denegada: No se puede eliminar este tipo de combustible porque existen vehículos en el inventario registrados bajo esta especificación.", "danger")
+            return redirect(url_for('tipos_combustible.listar_combustibles'))
+            
+        # Si está libre de dependencias operativas, lo borramos de manera definitiva
+        cursor.execute("DELETE FROM tipos_combustible WHERE id_combustible = %s", (id_combustible,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("El tipo de combustible ha sido eliminado físicamente de la base de datos con éxito.", "success")
+    except Exception as e:
+        flash(f"Error de restricción al intentar eliminar el combustible: {str(e)}", "danger")
+        
+    return redirect(url_for('tipos_combustible.listar_combustibles'))

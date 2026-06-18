@@ -131,3 +131,41 @@ def cambiar_estado_empleado(id_empleado, nuevo_estado):
         flash(f"Error al alternar estado del empleado: {str(e)}", "danger")
         
     return redirect(url_for('empleados.listar_empleados'))
+
+
+#  BORRADO FÍSICO SEGURO CON COMPROBACIÓN HISTÓRICA COMPLETA DE EMPLEADOS
+@empleados_bp.route('/eliminar_empleado/<int:id_empleado>')
+def eliminar_empleado(id_empleado):
+    try:
+        from app import mysql
+        cursor = mysql.connection.cursor()
+        
+        # ESCANEO TOTAL: Busca si el empleado firmó rentas o auditó inspecciones
+        query_verificar = """
+            SELECT 
+                (SELECT COUNT(*) FROM rentas WHERE id_empleado = %s) AS en_rentas,
+                (SELECT COUNT(*) FROM inspecciones WHERE id_empleado_inspeccion = %s) AS en_inspecciones
+        """
+        cursor.execute(query_verificar, (id_empleado, id_empleado))
+        resultado = cursor.fetchone()
+        
+        # Extracción segura para diccionarios o tuplas
+        ren = resultado['en_rentas'] if isinstance(resultado, dict) else resultado[0]
+        insp = resultado['en_inspecciones'] if isinstance(resultado, dict) else resultado[1]
+        
+        # Si tiene cualquier registro operativo, congela la eliminación física inmediatamente
+        if ren > 0 or insp > 0:
+            cursor.close()
+            flash(" Operación denegada: No se puede eliminar este empleado porque figura como responsable registrado de transacciones históricas (contratos de renta o auditorías de inspección).", "danger")
+            return redirect(url_for('empleados.listar_empleados'))
+            
+        # Si está completamente libre de dependencias, procedemos a borrar físicamente
+        cursor.execute("DELETE FROM empleados WHERE id_empleado = %s", (id_empleado,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        flash("El expediente del empleado ha sido removido físicamente de la base de datos de forma segura.", "success")
+    except Exception as e:
+        flash(f"Error de restricción de integridad relacional al intentar eliminar el empleado: {str(e)}", "danger")
+        
+    return redirect(url_for('empleados.listar_empleados'))
