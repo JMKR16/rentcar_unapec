@@ -81,15 +81,19 @@ def guardar_renta():
         id_cliente = datos_insp['id_cliente'] if isinstance(datos_insp, dict) else datos_insp[1]
         id_empleado = datos_insp['id_empleado_inspeccion'] if isinstance(datos_insp, dict) else datos_insp[2]
 
-        #  Nace con fecha_devolucion en NULL/None porque todavía está en uso
+        # 1. Guarda el contrato de renta
         query = """
             INSERT INTO rentas (id_vehiculo, id_cliente, id_empleado, id_inspeccion, fecha_renta, fecha_devolucion, monto_x_dia, cantidad_dias, monto_total, estado, comentario)
             VALUES (%s, %s, %s, %s, %s, NULL, %s, 0, 0.00, 'Activo', %s)
         """
         cursor.execute(query, (id_vehiculo, id_cliente, id_empleado, id_inspeccion, fecha_renta_str, monto_x_dia, comentario))
+        
+        # 🟢 2. ACTUALIZACIÓN EN CASCADA: Inactiva automáticamente la hoja de inspección usada
+        cursor.execute("UPDATE inspecciones SET estado = 'Inactivo' WHERE id_inspeccion = %s", (id_inspeccion,))
+        
         mysql.connection.commit()
         cursor.close()
-        flash("Contrato de renta generado exitosamente. ¡Vehículo en uso!", "success")
+        flash("Contrato de renta generado exitosamente. ¡Inspección procesada y vehículo en uso!", "success")
     except Exception as e:
         flash(f"Error al procesar la salida del vehículo: {str(e)}", "danger")
         
@@ -109,7 +113,6 @@ def editar_renta_activa():
 
     try:
         cursor = mysql.connection.cursor()
-        #  Limpia el update quitando la fecha de devolución estipulada
         query = """
             UPDATE rentas 
             SET fecha_renta = %s, monto_x_dia = %s, comentario = %s
@@ -154,7 +157,6 @@ def marcar_devolucion():
         else:
             f_renta = f_renta_origen
 
-        # Doble validación en el Backend por seguridad:
         dias = (f_dev - f_renta).days
         if dias < 0:
             flash("Error: La fecha de devolución no puede ser menor a la fecha de inicio.", "danger")
