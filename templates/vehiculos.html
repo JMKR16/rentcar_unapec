@@ -125,7 +125,7 @@
 
                                     <a href="{{ url_for('vehiculos.eliminar_vehiculo', id_vehiculo=v.id_vehiculo) }}" 
                                        class="btn btn-danger" 
-                                       onclick="return confirm('⚠️ ¿Está completamente seguro de eliminar permanentemente este vehículo «{{ v.descripcion }}»? Esta acción no se puede deshacer y borrará todo su registro físico del inventario.');"
+                                       onclick="return confirm(' ¿Está completamente seguro de eliminar permanentemente este vehículo «{{ v.descripcion }}»? Esta acción no se puede deshacer y borrará todo su registro físico del inventario.');"
                                        title="Eliminar Vehículo de forma permanente">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </a>

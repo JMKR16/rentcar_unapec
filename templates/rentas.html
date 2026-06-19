@@ -244,17 +244,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
-            // Calcula la fecha actual (hoy) en formato local YYYY-MM-DD
-            const hoy = new Date().toISOString().split('T')[0];
-            
-            // Bloquea estrictamente que se elijan fechas futuras en cualquier módulo
             const inputRentaNueva = document.getElementById('crear_txt_fecha_renta');
             const inputFechaDevolucion = document.getElementById('dev_txt_fecha_real');
             const inputFechaEditar = document.getElementById('edit_txt_fecha_renta');
-            
-            if (inputRentaNueva) inputRentaNueva.max = hoy;
-            if (inputFechaDevolucion) inputFechaDevolucion.max = hoy;
-            if (inputFechaEditar) inputFechaEditar.max = hoy;
 
             // Escuchador dinámico para sincronizar el mínimo de la Renta con el día de la Inspección
             const selectInspeccion = document.getElementById('sel_inspeccion_nueva');
@@ -264,10 +256,10 @@
                     const fechaInspeccion = opcionSeleccionada.getAttribute('data-fecha');
                     
                     if (fechaInspeccion) {
-                        // El límite inferior permitido pasa a ser la fecha en que se evaluó el carro
+                        //  Fijam la fecha de inspección como límite MÍNIMO estricto
                         inputRentaNueva.min = fechaInspeccion;
                         
-                        // Si el usuario ya tenía una fecha menor puesta por error, limpiamos el campo
+                        // Si el usuario tenía una fecha menor puesta por error, limpiamos el campo
                         if (inputRentaNueva.value && inputRentaNueva.value < fechaInspeccion) {
                             inputRentaNueva.value = '';
                         }
@@ -281,7 +273,7 @@
             // INYECCIÓN DINÁMICA DE DATOS A MODALES
             // ==========================================
             
-            // 1. Modal Devolver Verde (Ajusta el min según el origen de la renta)
+            // Modal Devolver Verde (Ajusta el min según el origen de la renta)
             const botonesCambiar = document.querySelectorAll('.btn-cambiar-estado');
             botonesCambiar.forEach(boton => {
                 boton.addEventListener('click', function() {
@@ -296,7 +288,7 @@
                 });
             });
 
-            // 2. Modal Editar Gris
+            
             const botonesEditar = document.querySelectorAll('.btn-editar-renta');
             botonesEditar.forEach(boton => {
                 boton.addEventListener('click', function() {

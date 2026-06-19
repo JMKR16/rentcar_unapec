@@ -140,7 +140,7 @@ def editar_renta_activa():
     try:
         cursor = mysql.connection.cursor()
         
-        # Obtenemos la fecha de la inspección original ligada a esta renta para mantener la coherencia al editar
+        # Obtiene la fecha de la inspección original ligada a esta renta para mantener la coherencia al editar
         cursor.execute("""
             SELECT i.fecha 
             FROM rentas r 

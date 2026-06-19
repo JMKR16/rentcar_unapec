@@ -185,13 +185,13 @@ def cambiar_estado_vehiculo(id_vehiculo, nuevo_estado):
             cursor.execute(query_verificar_padres, (id_vehiculo,))
             resultado = cursor.fetchone()
             
-            # Controlamos si el cursor devuelve un diccionario o tupla según la configuración del entorno
+            # Controla si el cursor devuelve un diccionario o tupla según la configuración del entorno
             est_marca = resultado['estado_marca'] if isinstance(resultado, dict) else resultado[0]
             nom_marca = resultado['nombre_marca'] if isinstance(resultado, dict) else resultado[1]
             est_modelo = resultado['estado_modelo'] if isinstance(resultado, dict) else resultado[2]
             nom_modelo = resultado['nombre_modelo'] if isinstance(resultado, dict) else resultado[3]
             
-            # Si la marca principal o el modelo asignado están inactivos, bloqueamos la reactivación
+            # Si la marca principal o el modelo asignado están inactivos, bloquea la reactivación
             if est_marca == 'Inactivo':
                 cursor.close()
                 flash(f" Operación denegada: No se puede activar este vehículo porque su marca '{nom_marca}' se encuentra inactiva.", "danger")
@@ -220,7 +220,7 @@ def eliminar_vehiculo(id_vehiculo):
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        # ESCANEO OPERATIVO: Verificamos si este auto cuenta con rentas o hojas de inspección hechas
+        # ESCANEO OPERATIVO: Verifica si este auto cuenta con rentas o hojas de inspección hechas
         query_verificar_historial = """
             SELECT 
                 (SELECT COUNT(*) FROM rentas WHERE id_vehiculo = %s) AS en_rentas,
@@ -233,13 +233,13 @@ def eliminar_vehiculo(id_vehiculo):
         ren = resultado['en_rentas'] if isinstance(resultado, dict) else resultado[0]
         insp = resultado['en_inspecciones'] if isinstance(resultado, dict) else resultado[1]
         
-        # Si tiene un historial operativo detrás, bloqueamos el borrado físico inmediatamente
+        # Si tiene un historial operativo detrás, bloquea el borrado físico inmediatamente
         if ren > 0 or insp > 0:
             cursor.close()
             flash("Operación denegada: No se puede eliminar este vehículo permanentemente porque posee un historial de transacciones registrado (hojas de inspección o contratos de renta).", "danger")
             return redirect(url_for('vehiculos.listar_vehiculos'))
             
-        # Si está completamente libre de dependencias, procedemos a borrar de la base de datos
+        # Si está completamente libre de dependencias, procede a borrar de la base de datos
         cursor.execute("DELETE FROM vehiculos WHERE id_vehiculo = %s", (id_vehiculo,))
         mysql.connection.commit()
         cursor.close()

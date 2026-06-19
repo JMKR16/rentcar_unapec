@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 #  Crea el Blueprint para Clientes 
 clientes_bp = Blueprint('clientes', __name__)
 
-#   Validación Oficial de RNC Dominicano (9 dígitos )
+#   Validación Oficial de RNC Dominicano 
 def validar_rnc_dominicano(rnc):
     """Valida estructuralmente un RNC de República Dominicana (9 dígitos, Módulo 11)"""
     if not rnc or not rnc.isdigit() or len(rnc) != 9:

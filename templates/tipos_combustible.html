@@ -110,7 +110,7 @@
 
                                 <a href="{{ url_for('tipos_combustible.eliminar_combustible', id_combustible=c.id_combustible) }}" 
                                    class="btn btn-danger" 
-                                   onclick="return confirm('⚠️ ¿Está completamente seguro de eliminar permanentemente este tipo de combustible «{{ c.descripcion }}»? Esta acción no se puede deshacer.');"
+                                   onclick="return confirm(' ¿Está completamente seguro de eliminar permanentemente este tipo de combustible «{{ c.descripcion }}»? Esta acción no se puede deshacer.');"
                                    title="Eliminar Combustible de forma permanente">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </a>

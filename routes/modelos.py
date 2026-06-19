@@ -100,7 +100,7 @@ def cambiar_estado_modelo(id_modelo, nuevo_estado):
         #  Actualiza el estado del Modelo seleccionado
         cursor.execute("UPDATE modelos SET estado = %s WHERE id_modelo = %s", (nuevo_estado, id_modelo))
         
-        # . ACTUALIZACIÓN EN CASCADA (NUEVA): Desactiva/Activa todos los vehículos de este modelo específico
+        #  Desactiva/Activa todos los vehículos de este modelo específico
         cursor.execute("UPDATE vehiculos SET estado = %s WHERE id_modelo = %s", (nuevo_estado, id_modelo))
         
         mysql.connection.commit()
@@ -141,7 +141,7 @@ def eliminar_modelo(id_modelo):
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        # ESCANEO TOTAL: Validamos si el modelo se usa en vehículos, rentas o inspecciones
+        # ESCANEO TOTAL: Valida si el modelo se usa en vehículos, rentas o inspecciones
         query_verificar_uso = """
             SELECT 
                 (SELECT COUNT(*) FROM vehiculos WHERE id_modelo = %s) AS en_vehiculos,
@@ -151,18 +151,18 @@ def eliminar_modelo(id_modelo):
         cursor.execute(query_verificar_uso, (id_modelo, id_modelo, id_modelo))
         resultado = cursor.fetchone()
         
-        # Controlamos la extracción de datos por diccionario o tupla según tu entorno
+        # Controla la extracción de datos por diccionario o tupla según el entorno
         veh = resultado['en_vehiculos'] if isinstance(resultado, dict) else resultado[0]
         ren = resultado['en_rentas'] if isinstance(resultado, dict) else resultado[1]
         insp = resultado['en_inspecciones'] if isinstance(resultado, dict) else resultado[2]
         
-        # Si tiene cualquier tipo de dependencia transaccional, bloqueamos la acción física
+        # Si tiene cualquier tipo de dependencia transaccional, bloquea la acción física
         if veh > 0 or ren > 0 or insp > 0:
             cursor.close()
             flash(" Operación denegada: No se puede eliminar este modelo permanentemente porque posee unidades registradas en el inventario o historial operativo.", "danger")
             return redirect(url_for('modelos.listar_modelos'))
             
-        # Si el conteo es 0 absoluto, procedemos a borrar físicamente de forma segura
+        # Si el conteo es 0 absoluto, procede a borrar físicamente de forma segura
         cursor.execute("DELETE FROM modelos WHERE id_modelo = %s", (id_modelo,))
         mysql.connection.commit()
         cursor.close()
