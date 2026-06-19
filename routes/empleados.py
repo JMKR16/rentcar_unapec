@@ -140,7 +140,7 @@ def eliminar_empleado(id_empleado):
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        # ESCANEO TOTAL: Busca si el empleado firmó rentas o auditó inspecciones
+        # Busca si el empleado firmó rentas o auditó inspecciones
         query_verificar = """
             SELECT 
                 (SELECT COUNT(*) FROM rentas WHERE id_empleado = %s) AS en_rentas,

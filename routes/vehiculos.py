@@ -213,14 +213,14 @@ def cambiar_estado_vehiculo(id_vehiculo, nuevo_estado):
     return redirect(url_for('vehiculos.listar_vehiculos'))
 
 
-#  BORRADO FÍSICO SEGURO CON VERIFICACIÓN EN HISTORIAL OPERATIVO
+#  borrado físico seguro con comprobación histórica completa
 @vehiculos_bp.route('/eliminar_vehiculo/<int:id_vehiculo>')
 def eliminar_vehiculo(id_vehiculo):
     try:
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        # ESCANEO OPERATIVO: Verifica si este auto cuenta con rentas o hojas de inspección hechas
+        # valida si el vehículo tiene historial operativo en rentas o inspecciones antes de permitir el borrado físico
         query_verificar_historial = """
             SELECT 
                 (SELECT COUNT(*) FROM rentas WHERE id_vehiculo = %s) AS en_rentas,

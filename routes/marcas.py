@@ -80,13 +80,13 @@ def cambiar_estado_marca(id_marca, nuevo_estado):
                 flash(" Operación denegada: No se puede inactivar esta marca porque posee vehículos asociados en rentas vigentes (en uso).", "danger")
                 return redirect(url_for('marcas.listar_marcas'))
         
-        # 1. Actualiza el estado de la Marca principal
+        #  Actualiza el estado de la Marca principal
         cursor.execute("UPDATE marcas SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
         
-        # 2. ACTUALIZACIÓN EN CASCADA 1: Desactiva/Activa todos sus modelos dependientes automáticamente
+        #   Desactiva/Activa todos sus modelos dependientes automáticamente
         cursor.execute("UPDATE modelos SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
         
-        # 3. ACTUALIZACIÓN EN CASCADA 2 (NUEVA): Desactiva/Activa todos los vehículos individuales de esa marca
+        #   Desactiva/Activa todos los vehículos individuales de esa marca
         cursor.execute("UPDATE vehiculos SET estado = %s WHERE id_marca = %s", (nuevo_estado, id_marca))
         
         mysql.connection.commit()
@@ -155,7 +155,7 @@ def eliminar_marca(id_marca):
         # Si está metida en cualquier parte del sistema, congelamos el borrado físico de inmediato
         if mod > 0 or veh > 0 or ren > 0 or insp > 0:
             cursor.close()
-            flash("🚫 Operación denegada: No se puede eliminar esta marca permanentemente porque cuenta con registros asociados en modelos, vehículos, inspecciones o contratos de renta.", "danger")
+            flash(" Operación denegada: No se puede eliminar esta marca permanentemente porque cuenta con registros asociados en modelos, vehículos, inspecciones o contratos de renta.", "danger")
             return redirect(url_for('marcas.listar_marcas'))
             
         # Si el conteo total da 0 absoluto, la marca está completamente huérfana y es segura de borrar

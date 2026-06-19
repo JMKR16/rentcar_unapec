@@ -70,7 +70,7 @@ def guardar_renta():
     try:
         cursor = mysql.connection.cursor()
 
-        # TRAE LA FECHA DE LA INSPECCIÓN ADEMÁS DE LOS IDS
+        # Obtiene los datos de la inspección original para ligar la renta a su vehículo, cliente y empleado correspondientes, y para validar las fechas
         cursor.execute("SELECT id_vehiculo, id_cliente, id_empleado_inspeccion, fecha FROM inspecciones WHERE id_inspeccion = %s", (id_inspeccion,))
         datos_insp = cursor.fetchone()
 

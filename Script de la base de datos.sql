@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS empleados (
     estado VARCHAR(20) DEFAULT 'Activo'
 );
 
--- 8. TABLA: USUARIOS (Estructura real: nombre y nombre_usuario)
+-- 8. TABLA: USUARIOS (para autenticación y control de acceso)
 CREATE TABLE IF NOT EXISTS usuarios (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,

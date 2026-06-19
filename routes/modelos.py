@@ -78,7 +78,7 @@ def cambiar_estado_modelo(id_modelo, nuevo_estado):
         
         cursor = mysql.connection.cursor()
         
-        #  CANDADO DE INTEGRIDAD PADRE-HIJO: Si se intenta ACTIVAR el modelo...
+        #  Si se intenta ACTIVAR el modelo, valida que su marca principal esté activa
         if nuevo_estado == 'Activo':
             query_verificar_marca = """
                 SELECT m.estado AS estado_marca, m.descripcion AS nombre_marca
@@ -134,14 +134,14 @@ def editar_modelo(id_modelo):
     return redirect(url_for('modelos.listar_modelos'))
 
 
-#  BORRADO FÍSICO SEGURO DE MODELO CON CANDADO DE USO TOTAL
+#  bp.route para eliminar modelo con comprobación de integridad referencial en vehículos, rentas e inspecciones
 @modelos_bp.route('/eliminar_modelo/<int:id_modelo>')
 def eliminar_modelo(id_modelo):
     try:
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        # ESCANEO TOTAL: Valida si el modelo se usa en vehículos, rentas o inspecciones
+        #  Valida si el modelo se usa en vehículos, rentas o inspecciones
         query_verificar_uso = """
             SELECT 
                 (SELECT COUNT(*) FROM vehiculos WHERE id_modelo = %s) AS en_vehiculos,

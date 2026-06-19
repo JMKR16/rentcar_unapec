@@ -72,7 +72,7 @@ def guardar_inspeccion():
     fecha = request.form.get('txt_fecha')
     cantidad_combustible = request.form.get('sel_combustible')
     
-    # Conversión de los checkboxes a 'Sí' o 'No'
+    # Conversión de los checkboxes a 'Sí' o 'No' para almacenamiento consistente en la base de datos
     tiene_ralladuras = 'Sí' if request.form.get('chk_ralladuras') else 'No'
     tiene_goma_repuesta = 'Sí' if request.form.get('chk_goma') else 'No'
     tiene_gato = 'Sí' if request.form.get('chk_gato') else 'No'
@@ -143,20 +143,20 @@ def eliminar_inspeccion(id_inspeccion):
         from app import mysql
         cursor = mysql.connection.cursor()
         
-        # Verificamos si esta hoja de inspección ya forma parte de algún contrato de renta
+        # Verifica si esta hoja de inspección ya forma parte de algún contrato de renta
         cursor.execute("SELECT COUNT(*) FROM rentas WHERE id_inspeccion = %s", (id_inspeccion,))
         resultado = cursor.fetchone()
         
-        # Controlamos si devuelve diccionario o tupla según tu configuración
+        # Controla si devuelve diccionario o tupla según tu configuración
         en_rentas = resultado['COUNT(*)'] if isinstance(resultado, dict) else resultado[0]
         
-        # Si ya se usó para rentar un carro, bloqueamos su eliminación para no romper la auditoría
+        # Si ya se usó para rentar un carro, bloquea su eliminación para no romper la auditoría
         if en_rentas > 0:
             cursor.close()
             flash("Operación denegada: No se puede eliminar esta hoja de inspección de forma permanente porque ya se encuentra vinculada a un contrato de renta asentado.", "danger")
             return redirect(url_for('inspecciones.listar_inspecciones'))
             
-        # Si nunca se llegó a usar en una renta, procedemos con el borrado físico seguro
+        # Si nunca se llegó a usar en una renta, procede con el borrado físico seguro
         cursor.execute("DELETE FROM inspecciones WHERE id_inspeccion = %s", (id_inspeccion,))
         mysql.connection.commit()
         cursor.close()

@@ -91,7 +91,7 @@ def editar_tipo_vehiculo(id_tipo):
     return redirect(url_for('tipos_vehiculos.listar_tipos_vehiculos'))
 
 
-#  BORRADO FÍSICO SEGURO DE CATEGORÍA CON CANDADO RELACIONAL
+#  borrado físico seguro con comprobación de integridad referencial en vehículos
 @tipos_vehiculos_bp.route('/eliminar_tipo_vehiculo/<int:id_tipo>')
 def eliminar_tipo_vehiculo(id_tipo):
     try:
